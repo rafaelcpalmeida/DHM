@@ -16,6 +16,13 @@ public class AuthSessionImpl implements AuthSessionRI{
     }
 
     /**
+     * The user buys coins , calls the method giveMoney() in @DBMockup
+     * @param amount of coins being purchased
+     */
+    public void buyCoins(int amount){
+
+    }
+    /**
      * User wants to join a task group
      * @param taskGroup the user wants to join
      * @throws RemoteException if remote error

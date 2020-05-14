@@ -73,6 +73,15 @@ public class DBMockup {
 
     }
 
+    /**
+     * Gives money to user
+     * @param user giving the money
+     * @param quantity amount of money
+     */
+    public void giveMoney(User user, int quantity){
+
+    }
+
     //TODO delete , search
 
 }
