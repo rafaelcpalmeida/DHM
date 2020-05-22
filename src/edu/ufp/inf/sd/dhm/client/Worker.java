@@ -1,24 +1,25 @@
 package edu.ufp.inf.sd.dhm.client;
 
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DeliverCallback;
+import com.rabbitmq.client.*;
 import edu.ufp.inf.sd.dhm.Rabbit;
 import edu.ufp.inf.sd.dhm.server.User;
+
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 public class Worker {
     private final int id;
     private int coinsEarnt;
-    private final User user;
-    private final String sendQueue;
-    private final String recvQueue;
-    private final Channel recvChannel;
-    private final Channel sendChannel;
+    private User user;
+    private String recvDirectQueue;
+    private String sendQueue;
+    private String exchangeName;
+    private final Channel channel;
+    private Channel sendChannel;
+    private Channel recvGeralChannel;
+    private Channel recvDirectChannel;
+    private String generalQueue;
 
-    public Channel getSendChannel() {
-        return this.sendChannel;
-    }
 
     /**
      * Create a factory, the opens 2 channels (recv and send),
@@ -26,43 +27,73 @@ public class Worker {
      *
      * @param id        of this worker
      * @param user      that this worker belongs
-     * @param sendQueue that this worker is sending hashing states
-     * @param recvQueue that this worker is receiving task states
      */
-    public Worker(int id, User user, String sendQueue, String recvQueue) {
+    public Worker(int id, User user) throws IOException, TimeoutException {
         this.id = id;
-        this.user = user;
         this.coinsEarnt = 0;
-        this.sendQueue = sendQueue;
-        this.recvQueue = recvQueue + "_worker_" + this.id;
-        // Get the connect factory
         Rabbit rabbit = new Rabbit();
         ConnectionFactory factory = rabbit.connect();
-        // Get the channels
-        this.recvChannel = rabbit.channelRecv(factory, this.recvQueue, Integer.toString(this.id));
-        this.sendChannel = rabbit.channelSend(factory, this.sendQueue, Integer.toString(this.id));
-        // Receiving message
-        listen(this.recvChannel);
-        // Sending message
-        //this.publish(sendChannel,"sending msg");
+        Connection connection=factory.newConnection();
+        this.channel = connection.createChannel();
+        String queueName=channel.queueDeclare().getQueue();
+        this.createQueueNamesAndExchange(user);
+        this.createChannels();
+        this.declareQueuesAndExchange();
+        this.listen(this.recvDirectChannel,this.recvDirectQueue);
+        this.listen(this.recvGeralChannel,this.generalQueue);
     }
 
+    /**
+     * Creates the name of the send , recv and exchange names
+     * @param user for queue's names
+     */
+    private void createQueueNamesAndExchange(User user){
+        this.recvDirectQueue = user.getUsername() + "_task_workers_queue";
+        this.sendQueue = user.getUsername() + "_task_recv_queue";
+        this.exchangeName = user.getUsername() + "_exchange";
+    }
+
+    /**
+     * Create the connection to rabbitmq and create channels
+     * @throws IOException files
+     * @throws TimeoutException timeout
+     */
+    private void createChannels() throws IOException, TimeoutException {
+        // Create a connection to rabbitmq
+        Rabbit rabbit = new Rabbit();
+        ConnectionFactory factory = rabbit.connect();
+        // Create the connections
+        Connection connection=factory.newConnection();
+        this.sendChannel = connection.createChannel();
+        this.recvGeralChannel = connection.createChannel();
+        this.recvDirectChannel = connection.createChannel();
+    }
+    /**
+     * Declare all the queues for the task and the exchange
+     * @throws IOException opening files
+     */
+    private void declareQueuesAndExchange() throws IOException {
+        // declare queues
+        this.sendChannel.queueDeclare(this.sendQueue,false,false,false,null);
+        this.generalQueue = this.recvGeralChannel.queueDeclare().getQueue();
+        recvGeralChannel.exchangeDeclare(this.exchangeName,BuiltinExchangeType.FANOUT);
+        recvGeralChannel.queueBind(this.generalQueue, this.exchangeName, "");
+        this.recvDirectChannel.queueDeclare(this.recvDirectQueue,false,false,false,null);
+    }
 
     /**
      * Create a callback function that listens to the task queue
      * and processes that info.
      */
-    private void listen(Channel channel) {
+    private void listen(Channel channel, String queue) {
         try {
             DeliverCallback listen = (consumerTag, delivery) -> {
                 // TODO make the callback to the received message from the task queue
                 String message = new String(delivery.getBody(), "UTF-8");
-                System.out.println("[RECV][W#" + this.id + "][" + this.recvQueue + "]" + " Received '" + message + "'");
-                this.publish(sendChannel,"message received");
+                System.out.println("[RECV][W#" + this.id + "][" + queue + "]" + " Received '" + message + "'");
+                this.publish(this.sendChannel,"message received");
             };
-            channel.exchangeDeclare("teste","fanout");
-            channel.queueBind(this.recvQueue,"teste","");
-            channel.basicConsume(this.recvQueue, true, listen, consumerTag -> {
+            channel.basicConsume(queue, true, listen, consumerTag -> {
             });
         } catch (Exception e) {
             System.out.println("[ERROR] Exception in worker.listen()");
