@@ -5,14 +5,17 @@ import edu.ufp.inf.sd.dhm.server.TaskGroup;
 import edu.ufp.inf.sd.dhm.server.User;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 
 public class Client {
 
     public static void main(String[] args) throws IOException, TimeoutException {
+
         System.out.println("creating taskgroup ....");
         User user = new User("rolotes");
-        TaskGroup taskGroup = new TaskGroup(20,user);
+        TaskGroup taskGroup = new TaskGroup(20,user,null);
+        /*
         System.out.println("creating task ....");
         Task task = new Task(null,2,null,null,20,taskGroup);
         System.out.println("creating workers ....");
@@ -22,5 +25,14 @@ public class Client {
         task.publishToAllWorkers("GENERAL MESSAGE");
         task.publishToWorkersQueue("JUST 1 CAN GET THIS");
         System.out.println("finish");
+        */
+        System.out.println("creating task");
+        Task task = new Task(null,1,new ArrayList<>(),null,10,taskGroup);
+        System.out.println("creating 2 workers");
+        Worker worker = new Worker(1,user);
+        Worker worker2 = new Worker(2,user);
+        task.addWorker(worker);
+        task.addWorker(worker2);
+        System.out.println("all done");
     }
 }

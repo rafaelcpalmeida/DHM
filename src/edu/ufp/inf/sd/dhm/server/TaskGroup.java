@@ -7,10 +7,12 @@ public class TaskGroup {
     private int coinPool;
     private final User owner;
     private Task task;
+    private DBMockup db;
 
-    public TaskGroup(int coinPool, User owner) {
+    public TaskGroup(int coinPool, User owner, DBMockup db) {
         this.coinPool = coinPool;
         this.owner = owner;
+        this.db = db;
     }
 
     /**
@@ -45,5 +47,9 @@ public class TaskGroup {
 
     public Task getTask() {
         return task;
+    }
+
+    public DBMockup getDb() {
+        return db;
     }
 }

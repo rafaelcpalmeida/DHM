@@ -61,7 +61,6 @@ public class AuthSessionImpl implements AuthSessionRI{
     }
 
 
-
     /**
      * Returns all the taskgroup of the user from the bd
      * Goes to db.taskgroups to fetch the info.
