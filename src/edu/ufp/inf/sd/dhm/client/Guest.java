@@ -1,9 +1,11 @@
 package edu.ufp.inf.sd.dhm.client;
 
+import java.io.Serializable;
+
 /**
  * Used to make the authentication
  */
-public class Guest {
+public class Guest implements Serializable {
     private final String username;
     private final String password;
 

@@ -1,20 +1,93 @@
 package edu.ufp.inf.sd.dhm.client;
 
-import edu.ufp.inf.sd.dhm.server.Task;
-import edu.ufp.inf.sd.dhm.server.TaskGroup;
-import edu.ufp.inf.sd.dhm.server.User;
+import edu.ufp.inf.sd.dhm.server.*;
+import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 
 import java.io.IOException;
+import java.rmi.NotBoundException;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Client {
+    //make run-client PACKAGE_NAME=edu.ufp.inf.sd.dhm.client.Client SERVICE_NAME=DhmService
+    private SetupContextRMI contextRMI;
+    private AuthFactoryRI authFactoryRI;
+    public Client(String[] args) {
+        try {
+            String registryIP   = args[0];
+            String registryPort = args[1];
+            String serviceName  = args[2];
+            contextRMI = new SetupContextRMI(this.getClass(), registryIP, registryPort, new String[]{serviceName});
+        } catch (RemoteException e) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, e);
+        }
+    }
+
+    private Remote lookupService() {
+        try {
+            //Get proxy to rmiregistry
+            Registry registry = contextRMI.getRegistry();
+            //Lookup service on rmiregistry and wait for calls
+            if (registry != null) {
+                //Get service url (including servicename)
+                String serviceUrl = contextRMI.getServicesUrl(0);
+                //Logger.getLogger(this.getClass().getName()).log(Level.INFO, "going to lookup service @ {0}", serviceUrl);
+
+                //============ Get proxy to HelloWorld service ============
+                authFactoryRI = (AuthFactoryRI) registry.lookup(serviceUrl);
+            } else {
+                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "registry not bound (check IPs). :(");
+                //registry = LocateRegistry.createRegistry(1099);
+            }
+        } catch (RemoteException | NotBoundException ex) {
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
+        }
+        return authFactoryRI;
+    }
+
+    private void playService() {
+        try {
+            //============ Call DigLibFactory remote service ============
+            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Registering retoles ...");
+            Guest guest = new Guest("retoles","sougay123");
+            if(this.authFactoryRI.register(guest)) Logger.getLogger(this.getClass().getName()).log(Level.INFO, "boi do retoles foi registado com sucesso! ...");
+            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Loggin the fucking retoles");
+            AuthSessionRI sessionRI = this.authFactoryRI.login(guest);
+            if(sessionRI != null){
+                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "ESTOU NO INTERIOIRRRRRRRRRRR");
+                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Logging outi!");
+                sessionRI.logout();
+           }
+            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "going to finish, bye. ;)");
+        } catch (RemoteException ex) {
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 
     public static void main(String[] args) throws IOException, TimeoutException {
+        //rabbitmqtest();
+        if (args != null && args.length < 3) {
+            System.exit(-1);
+        } else {
+            assert args != null;
+            //1. ============ Setup client RMI context ============
+            Client client = new Client(args);
+            //2. ============ Lookup service ============
+            client.lookupService();
+            //3. ============ Play with service ============
+            client.playService();
+        }
+    }
 
+    private static void rabbitmqtest() throws IOException, TimeoutException {
         System.out.println("creating taskgroup ....");
         User user = new User("rolotes");
-        TaskGroup taskGroup = new TaskGroup(20,user,null);
+        TaskGroup taskGroup = new TaskGroup(20, user, null);
         /*
         System.out.println("creating task ....");
         Task task = new Task(null,2,null,null,20,taskGroup);
@@ -27,10 +100,10 @@ public class Client {
         System.out.println("finish");
         */
         System.out.println("creating task");
-        Task task = new Task(null,1,new ArrayList<>(),null,10,taskGroup);
+        Task task = new Task(null, 1, new ArrayList<>(), null, 10, taskGroup);
         System.out.println("creating 2 workers");
-        Worker worker = new Worker(1,user);
-        Worker worker2 = new Worker(2,user);
+        Worker worker = new Worker(1, user);
+        Worker worker2 = new Worker(2, user);
         task.addWorker(worker);
         task.addWorker(worker2);
         System.out.println("all done");

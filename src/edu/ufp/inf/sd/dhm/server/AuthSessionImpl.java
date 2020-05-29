@@ -1,10 +1,11 @@
 package edu.ufp.inf.sd.dhm.server;
 
+import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class AuthSessionImpl implements AuthSessionRI{
+public class AuthSessionImpl implements AuthSessionRI , Serializable {
     private DBMockup db;
     private User user;
     private ArrayList<TaskGroup> taskGroups;
@@ -52,12 +53,12 @@ public class AuthSessionImpl implements AuthSessionRI{
     }
 
     /**
-     * @param user User logging out
      * @throws RemoteException if remote error
      */
     @Override
-    public void logout(User user) throws RemoteException {
-
+    public void logout() throws RemoteException {
+        this.db.removeSession(this.user);
+        //System.exit(1);
     }
 
 

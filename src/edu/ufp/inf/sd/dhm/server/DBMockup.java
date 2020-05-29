@@ -1,7 +1,9 @@
 package edu.ufp.inf.sd.dhm.server;
 
+import edu.ufp.inf.sd.dhm.client.Guest;
 import edu.ufp.inf.sd.dhm.client.Worker;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -10,7 +12,7 @@ import java.util.HashMap;
  * Only 1 instance of DBMockup exists and it's
  * static.
  */
-public class DBMockup {
+public class DBMockup implements Serializable {
     private static DBMockup dbMockup = null;
     private HashMap<User, AuthSessionRI> sessions;   // User -> session
     private HashMap<User, String> users;             // User -> passw
@@ -40,15 +42,17 @@ public class DBMockup {
 
     /**
      * @param user being added to users
+     * @param passwd password
      */
-    public void insert(User user) {
+    public void insert(User user, String passwd) {
+        if(!this.users.containsKey(user)) this.users.put(user,passwd);
     }
 
     /**
      * @param task being added to tasks
      */
     public void insert(Task task) {
-
+        if(!this.tasks.containsKey(task)) this.tasks.put(task,new ArrayList<Worker>());
     }
 
     /**
@@ -56,6 +60,8 @@ public class DBMockup {
      * @param task key
      */
     public void insert(Worker worker, Task task) {
+        ArrayList<Worker> workers=this.tasks.get(task);
+        if(!workers.contains(worker)) workers.add(worker);
     }
 
     /**
@@ -63,6 +69,7 @@ public class DBMockup {
      * @param user key
      */
     public void insert(AuthSessionRI sessionRI, User user) {
+        if(!this.sessions.containsKey(user)) this.sessions.put(user,sessionRI);
     }
 
     /**
@@ -70,8 +77,9 @@ public class DBMockup {
      * @param user key
      */
     public void insert(TaskGroup taskGroup, User user) {
-
+        if(!this.taskgroups.containsKey(user)) this.taskgroups.put(user,taskGroup);
     }
+
 
     /**
      * Gives money to user
@@ -79,8 +87,40 @@ public class DBMockup {
      * @param quantity amount of money
      */
     public void giveMoney(User user, int quantity){
-
+        if(this.users.containsKey(user)){
+            // The user exists
+            user.setCoins(user.getCoins() + quantity);
+        }
     }
+
+    public boolean exists(Guest guest){
+        for(User user : this.users.keySet()){
+            if(user.getUsername().compareTo(guest.getUsername()) == 0){
+                if(this.users.get(user).compareTo(guest.getPassword()) ==0) return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean existsSession(User user){
+        return this.sessions.containsKey(user);
+    }
+
+    public User getUser(String name){
+        for(User user : this.users.keySet()){
+            if(user.getUsername().compareTo(name) == 0) return user;
+        }
+        return null;
+    }
+
+    public AuthSessionRI getSession(User user){
+        return this.sessions.get(user);
+    }
+
+    public void removeSession(User user){
+        this.sessions.remove(user);
+    }
+
 
     //TODO delete , search
 
