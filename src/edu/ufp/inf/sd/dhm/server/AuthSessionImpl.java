@@ -25,12 +25,19 @@ public class AuthSessionImpl implements AuthSessionRI , Serializable {
     }
     /**
      * User wants to join a task group
-     * @param taskGroup the user wants to join
+     * @param username the user we want to join the taskgroup
      * @throws RemoteException if remote error
      */
     @Override
-    public void joinTaskGroup(TaskGroup taskGroup) throws RemoteException {
-
+    public void joinTaskGroup(String username) throws RemoteException {
+        User taskOwner = this.db.getUser(username);
+        if(taskOwner == null){
+            System.out.println("Owner not found ...");
+            return;
+        }
+        TaskGroup taskGroup = this.getTaskGroupFrom(taskOwner);
+        taskGroup.addUser(this.user);
+        this.db.insert(taskGroup,this.user);
     }
 
     /**
@@ -39,17 +46,33 @@ public class AuthSessionImpl implements AuthSessionRI , Serializable {
      */
     @Override
     public ArrayList<TaskGroup> listTaskGroups() throws RemoteException {
+        return this.db.getTaskGroups();
+    }
+
+    /**
+     * @param user who owns taskGroups
+     * @return TaskGroup owned by user or null if none own
+     */
+    private TaskGroup getTaskGroupFrom(User user){
+        if(!this.db.getTaskGroups().isEmpty()){
+            for(TaskGroup taskGroup : this.db.getTaskGroups()){
+                if(taskGroup.getOwner().getUsername().compareTo(user.getUsername()) == 0) return taskGroup;
+            }
+        }
         return null;
     }
 
     /**
-     * @param user who wants to create the task group
      * @return TaskGroup created
      * @throws RemoteException if remote error
      */
     @Override
-    public TaskGroup createTaskGroup(User user) throws RemoteException {
-        return null;
+    public TaskGroup createTaskGroup() throws RemoteException {
+        TaskGroup taskGroup = new TaskGroup(this.user.getCoins(),this.user,this.db);
+        taskGroup.addUser(this.user);
+        this.db.insert(taskGroup,user);     // inserting in db
+        System.out.println("task group added for owner " + this.user.getUsername());
+        return taskGroup;
     }
 
     /**
@@ -61,7 +84,6 @@ public class AuthSessionImpl implements AuthSessionRI , Serializable {
         //System.exit(1);
     }
 
-
     /**
      * Returns all the taskgroup of the user from the bd
      * Goes to db.taskgroups to fetch the info.
@@ -70,4 +92,5 @@ public class AuthSessionImpl implements AuthSessionRI , Serializable {
     private ArrayList<TaskGroup> fetchTaskGroups() {
         return null;
     }
+
 }

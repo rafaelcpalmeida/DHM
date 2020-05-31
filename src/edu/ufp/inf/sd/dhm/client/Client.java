@@ -3,12 +3,16 @@ package edu.ufp.inf.sd.dhm.client;
 import edu.ufp.inf.sd.dhm.server.*;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 
+import java.io.BufferedReader;
+import java.io.Console;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,20 +56,33 @@ public class Client {
 
     private void playService() {
         try {
-            //============ Call DigLibFactory remote service ============
+
             Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Registering retoles ...");
+
             Guest guest = new Guest("retoles","sougay123");
             if(this.authFactoryRI.register(guest)) Logger.getLogger(this.getClass().getName()).log(Level.INFO, "boi do retoles foi registado com sucesso! ...");
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Loggin the fucking retoles");
+            Guest guest2 = new Guest("retoles2","sougay123");
+            if(this.authFactoryRI.register(guest)) Logger.getLogger(this.getClass().getName()).log(Level.INFO, "boi do retoles2 foi registado com sucesso! ...");
+            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Loggin into retoles");
             AuthSessionRI sessionRI = this.authFactoryRI.login(guest);
             if(sessionRI != null){
-                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "ESTOU NO INTERIOIRRRRRRRRRRR");
-                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Logging outi!");
-                sessionRI.logout();
+                //  prompt for the user's name
+                this.chooseOption(guest.getUsername(), sessionRI,2);
+                this.chooseOption(guest.getUsername(), sessionRI,1);
+                //sessionRI.logout();
            }
+            AuthSessionRI sessionRI2 = this.authFactoryRI.login(guest2);
+            if(sessionRI != null){
+                //  prompt for the user's name
+                this.chooseOption(guest2.getUsername(), sessionRI2,1);
+                this.chooseOption(guest2.getUsername(), sessionRI2,3);
+                //sessionRI.logout();
+            }
             Logger.getLogger(this.getClass().getName()).log(Level.INFO, "going to finish, bye. ;)");
         } catch (RemoteException ex) {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -108,4 +125,43 @@ public class Client {
         task.addWorker(worker2);
         System.out.println("all done");
     }
+
+    /**
+     * Prints all the task groups
+     */
+    private void printTaskGroups(AuthSessionRI authSessionRI) throws RemoteException {
+        System.out.println("Printing available task groups ...");
+        ArrayList<TaskGroup> taskGroups = authSessionRI.listTaskGroups();
+        if(!taskGroups.isEmpty()){
+            for(TaskGroup taskGroup : taskGroups){
+                System.out.println(taskGroup.toString());
+            }
+            return;
+        }
+        System.out.println("Cannot print taskGroups because there aren't any.");
+    }
+
+    private void chooseOption(String username, AuthSessionRI authSessionRI, int option) throws IOException {
+
+        Console c = System.console();
+        System.out.print("Hello , " + username + ", what do u want to du? \n1 - print task groups\n2 - create task group \n3 - join task group \n>");
+
+        switch (option){
+            case 1:
+                this.printTaskGroups(authSessionRI);
+                break;
+            case 2:
+                authSessionRI.createTaskGroup();
+                break;
+            case 3:
+                System.out.println("Which task u want to join?");
+                //String option2 = c.readLine();
+                authSessionRI.joinTaskGroup("retoles");
+                break;
+            default:
+                System.out.println("wrong option ... ");
+                this.chooseOption(username,authSessionRI,option);
+        }
+    }
+
 }

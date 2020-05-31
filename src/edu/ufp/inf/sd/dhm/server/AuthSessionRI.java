@@ -5,8 +5,8 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 
 public interface AuthSessionRI extends Remote {
-    public void joinTaskGroup(TaskGroup taskGroup) throws RemoteException;
+    public void joinTaskGroup(String username) throws RemoteException;
     public ArrayList<TaskGroup> listTaskGroups() throws RemoteException;
-    public TaskGroup createTaskGroup(User user) throws RemoteException;
+    public TaskGroup createTaskGroup() throws RemoteException;
     public void logout() throws RemoteException;
 }

@@ -113,6 +113,14 @@ public class DBMockup implements Serializable {
         return null;
     }
 
+    public ArrayList<TaskGroup> getTaskGroups() {
+        ArrayList<TaskGroup> tasks = new ArrayList<>();
+        this.taskgroups.forEach((user, taskGroup) -> {
+            tasks.add(taskGroup);
+        });
+        return tasks;
+    }
+
     public AuthSessionRI getSession(User user){
         return this.sessions.get(user);
     }
