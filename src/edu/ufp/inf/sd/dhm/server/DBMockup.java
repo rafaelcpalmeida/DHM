@@ -33,7 +33,7 @@ public class DBMockup implements Serializable {
     /**
      * @return DBMockup instance
      */
-    public static DBMockup getInstance() {
+    public synchronized static DBMockup getInstance() {
         if (dbMockup == null)
             dbMockup = new DBMockup();
         return dbMockup;
