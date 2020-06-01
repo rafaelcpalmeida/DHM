@@ -1,5 +1,6 @@
 package edu.ufp.inf.sd.dhm.server;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**

@@ -12,7 +12,7 @@ import java.util.HashMap;
  * Only 1 instance of DBMockup exists and it's
  * static.
  */
-public class DBMockup implements Serializable {
+public class DBMockup {
     private static DBMockup dbMockup = null;
     private HashMap<User, AuthSessionRI> sessions;   // User -> session
     private HashMap<User, String> users;             // User -> passw
@@ -44,7 +44,7 @@ public class DBMockup implements Serializable {
      * @param user being added to users
      * @param passwd password
      */
-    public void insert(User user, String passwd) {
+    public synchronized void insert(User user, String passwd) {
         if(!this.users.containsKey(user)) this.users.put(user,passwd);
     }
 
@@ -76,7 +76,7 @@ public class DBMockup implements Serializable {
      * @param taskGroup being added to taskgroups
      * @param user key
      */
-    public void insert(TaskGroup taskGroup, User user) {
+    public synchronized void insert(TaskGroup taskGroup, User user) {
         if(!this.taskgroups.containsKey(user)) this.taskgroups.put(user,taskGroup);
     }
 
@@ -113,7 +113,7 @@ public class DBMockup implements Serializable {
         return null;
     }
 
-    public ArrayList<TaskGroup> getTaskGroups() {
+    public synchronized ArrayList<TaskGroup> getTaskGroups() {
         ArrayList<TaskGroup> tasks = new ArrayList<>();
         this.taskgroups.forEach((user, taskGroup) -> {
             tasks.add(taskGroup);

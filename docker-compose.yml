@@ -12,7 +12,7 @@ networks:
 services:
   client:
     build: ./client
-    entrypoint: reflex -s -r '\.java$$' /app/run-client.sh
+    entrypoint: /app/run-client.sh
     container_name: rmi_run_client
     environment:
       JAR_LOCATION: ${JAR_LOCATION}

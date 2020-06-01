@@ -2,15 +2,17 @@ package edu.ufp.inf.sd.dhm.server;
 
 import java.io.Serializable;
 import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class AuthSessionImpl implements AuthSessionRI , Serializable {
+public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionRI{
     private DBMockup db;
     private User user;
     private ArrayList<TaskGroup> taskGroups;
 
-    public AuthSessionImpl(DBMockup db, User user) {
+    public AuthSessionImpl(DBMockup db, User user) throws RemoteException{
+        super();
         this.db = db;
         this.user = user;
         taskGroups = this.fetchTaskGroups();
@@ -50,6 +52,24 @@ public class AuthSessionImpl implements AuthSessionRI , Serializable {
     }
 
     /**
+     * Prints all the task groups
+     */
+    @Override
+    public String printTaskGroups() throws RemoteException {
+        ArrayList<TaskGroup> taskGroups = this.listTaskGroups();
+        System.out.println("Printing available task groups ...");
+        StringBuilder builder = new StringBuilder();
+        if(!taskGroups.isEmpty()){
+            for(TaskGroup taskGroup : taskGroups){
+                builder.append(taskGroup.toString());
+                builder.append("\n");
+            }
+            return builder.toString();
+        }
+        return "Cannot print taskGroups because there aren't any.";
+    }
+
+    /**
      * @param user who owns taskGroups
      * @return TaskGroup owned by user or null if none own
      */
@@ -67,12 +87,12 @@ public class AuthSessionImpl implements AuthSessionRI , Serializable {
      * @throws RemoteException if remote error
      */
     @Override
-    public TaskGroup createTaskGroup() throws RemoteException {
+    public String createTaskGroup() throws RemoteException {
         TaskGroup taskGroup = new TaskGroup(this.user.getCoins(),this.user,this.db);
         taskGroup.addUser(this.user);
         this.db.insert(taskGroup,user);     // inserting in db
         System.out.println("task group added for owner " + this.user.getUsername());
-        return taskGroup;
+        return "Task Group created!";
     }
 
     /**

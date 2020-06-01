@@ -56,33 +56,52 @@ public class Client {
 
     private void playService() {
         try {
-
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Registering retoles ...");
-
-            Guest guest = new Guest("retoles","sougay123");
-            if(this.authFactoryRI.register(guest)) Logger.getLogger(this.getClass().getName()).log(Level.INFO, "boi do retoles foi registado com sucesso! ...");
-            Guest guest2 = new Guest("retoles2","sougay123");
-            if(this.authFactoryRI.register(guest)) Logger.getLogger(this.getClass().getName()).log(Level.INFO, "boi do retoles2 foi registado com sucesso! ...");
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Loggin into retoles");
-            AuthSessionRI sessionRI = this.authFactoryRI.login(guest);
-            if(sessionRI != null){
-                //  prompt for the user's name
-                this.chooseOption(guest.getUsername(), sessionRI,2);
-                this.chooseOption(guest.getUsername(), sessionRI,1);
-                //sessionRI.logout();
-           }
-            AuthSessionRI sessionRI2 = this.authFactoryRI.login(guest2);
-            if(sessionRI != null){
-                //  prompt for the user's name
-                this.chooseOption(guest2.getUsername(), sessionRI2,1);
-                this.chooseOption(guest2.getUsername(), sessionRI2,3);
-                //sessionRI.logout();
+            AuthSessionRI authSessionRI = this.loginService();
+            if (authSessionRI != null) {
+                System.out.println("Session started !");
+                this.chooseOption(authSessionRI);
             }
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "going to finish, bye. ;)");
+            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Going to finish ...");
         } catch (RemoteException ex) {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private AuthSessionRI loginService() throws RemoteException {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Welcome to our wonderful software , would u rather:\n1 - Register\n2 - Login\n> ");
+        int option = scanner.nextInt();
+        scanner.nextLine();
+        switch (option){
+            case 1:
+                System.out.println("You are about to register our service ...\nPlease tell us the username u want to register:\n> ");
+                String name = scanner.nextLine();
+                scanner.nextLine();
+                System.out.println("Now tell us the password , dont worry , we ain't peeking:\n> ");
+                String passwd = scanner.nextLine();
+                scanner.nextLine();
+                Guest guest = new Guest(name,passwd);
+                if(this.authFactoryRI.register(guest)){
+                    // success
+                    System.out.println("Welcome " + guest.getUsername() + " , ur session is starting ...");
+                    return this.authFactoryRI.login(guest);
+                }
+                System.out.println("Could not register your account :/");
+                return null;
+            case 2:
+                System.out.println("username:\n> ");
+                String name2 = scanner.nextLine();
+                scanner.nextLine();
+                System.out.println("password:\n> ");
+                String passwd2 = scanner.nextLine();
+                scanner.nextLine();
+                Guest guest2 = new Guest(name2,passwd2);
+                System.out.println("Welcome " + guest2.getUsername() + " , ur session is starting ...");
+                return this.authFactoryRI.login(guest2);
+            default:
+                return this.loginService();
         }
     }
 
@@ -126,42 +145,29 @@ public class Client {
         System.out.println("all done");
     }
 
-    /**
-     * Prints all the task groups
-     */
-    private void printTaskGroups(AuthSessionRI authSessionRI) throws RemoteException {
-        System.out.println("Printing available task groups ...");
-        ArrayList<TaskGroup> taskGroups = authSessionRI.listTaskGroups();
-        if(!taskGroups.isEmpty()){
-            for(TaskGroup taskGroup : taskGroups){
-                System.out.println(taskGroup.toString());
+
+    private void chooseOption(AuthSessionRI authSessionRI) throws IOException {
+        while(true){
+            Scanner scanner = new Scanner(System.in);
+            System.out.print("Hello , what do u want to do? \n1 - print task groups\n2 - create task group \n3 - join task group \n> ");
+            int option1 = scanner.nextInt();
+            scanner.nextLine();
+            switch (option1){
+                case 1:
+                    System.out.println(authSessionRI.printTaskGroups());
+                    break;
+                case 2:
+                    System.out.println(authSessionRI.createTaskGroup());
+                    break;
+                case 3:
+                    System.out.println("Which task u want to join?\n> ");
+                    String option2 = scanner.nextLine();
+                    scanner.nextLine();
+                    authSessionRI.joinTaskGroup(option2);
+                    break;
+                default:
+                    System.out.println("Wrong option ... ");
             }
-            return;
-        }
-        System.out.println("Cannot print taskGroups because there aren't any.");
-    }
-
-    private void chooseOption(String username, AuthSessionRI authSessionRI, int option) throws IOException {
-
-        Console c = System.console();
-        System.out.print("Hello , " + username + ", what do u want to du? \n1 - print task groups\n2 - create task group \n3 - join task group \n>");
-
-        switch (option){
-            case 1:
-                this.printTaskGroups(authSessionRI);
-                break;
-            case 2:
-                authSessionRI.createTaskGroup();
-                break;
-            case 3:
-                System.out.println("Which task u want to join?");
-                //String option2 = c.readLine();
-                authSessionRI.joinTaskGroup("retoles");
-                break;
-            default:
-                System.out.println("wrong option ... ");
-                this.chooseOption(username,authSessionRI,option);
         }
     }
-
 }
