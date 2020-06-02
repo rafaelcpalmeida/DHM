@@ -1,13 +1,21 @@
 package edu.ufp.inf.sd.dhm.server;
 
+import edu.ufp.inf.sd.dhm.client.Worker;
+import edu.ufp.inf.sd.dhm.client.WorkerRI;
+
+import java.io.IOException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.concurrent.TimeoutException;
 
 public interface AuthSessionRI extends Remote {
     public void joinTaskGroup(String username) throws RemoteException;
     public ArrayList<TaskGroup> listTaskGroups() throws RemoteException;
     public String printTaskGroups() throws RemoteException;
-    public String createTaskGroup() throws RemoteException;
+    public String createTaskGroup() throws IOException, TimeoutException;
     public void logout() throws RemoteException;
+    public User getUser() throws RemoteException;
+    public void addWorkerToTask(String taskOwner, WorkerRI worker) throws RemoteException;
+    public User getUserFromName(String username) throws RemoteException;
 }

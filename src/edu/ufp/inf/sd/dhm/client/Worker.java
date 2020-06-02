@@ -13,16 +13,19 @@ import org.apache.commons.lang3.SerializationUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 
-public class Worker {
+public class Worker extends UnicastRemoteObject implements WorkerRI{
     private final int id;
     private int coinsEarnt;
     private User owner;
-    private User taskOwner;
+    private String taskOwner;
     private String recvDirectQueue;
     private String sendQueue;
     private String exchangeName;
@@ -36,6 +39,8 @@ public class Worker {
     private ArrayList<String> words = new ArrayList<>();
     private long deliveryTag;
     private String hashType;
+    private WorkerThread workerThread;
+    private Thread thread;
 
 
     /**
@@ -45,26 +50,27 @@ public class Worker {
      * @param id        of this worker
      * @param user      that this worker belongs
      */
-    public Worker(int id, User user) throws IOException, TimeoutException {
+    public Worker(int id, User user, String taskOwner) throws IOException, TimeoutException {
+        this.taskOwner = taskOwner;
+        this.owner = user;
         this.id = id;
         this.coinsEarnt = 0;
-        this.createQueueNamesAndExchange(user);
+        this.createQueueNamesAndExchange(taskOwner);
         this.createChannels();
         this.declareQueuesAndExchange();
-
     }
 
-    public void start(){
+    public void start() throws RemoteException{
         this.listenToGeneral();
     }
     /**
      * Creates the name of the send , recv and exchange names
-     * @param user for queue's names
+     * @param taskOwner for queue's names
      */
-    private void createQueueNamesAndExchange(User user){
-        this.recvDirectQueue = user.getUsername() + "_task_workers_queue";
-        this.sendQueue = user.getUsername() + "_task_recv_queue";
-        this.exchangeName = user.getUsername() + "_exchange";
+    private void createQueueNamesAndExchange(String taskOwner){
+        this.recvDirectQueue = taskOwner + "_task_workers_queue";
+        this.sendQueue = taskOwner + "_task_recv_queue";
+        this.exchangeName = taskOwner + "_exchange";
     }
 
     /**
@@ -110,7 +116,13 @@ public class Worker {
                 byte[] bytes = delivery.getBody();
                 TaskState taskState = (TaskState) SerializationUtils.deserialize(bytes);
                 System.out.println(taskState.toString());
-                this.work(taskState);
+                if(this.workerThread == null) this.workerThread = new WorkerThread(taskState);
+                this.workerThread.setTaskState(taskState);
+                if(this.thread != null){
+                    thread.interrupt();
+                }
+                this.thread = new Thread(this.workerThread);
+                this.thread.start();
             };
             this.recvDirectChannel.basicConsume(this.recvDirectQueue, false, work, consumerTag -> {
                 System.out.println("canceling");
@@ -129,8 +141,6 @@ public class Worker {
     private void work(TaskState taskState){
         // TODO work method
         System.out.println("im working bitch ...");
-
-
     }
 
     /**
@@ -186,7 +196,6 @@ public class Worker {
                 System.out.println("[RECV][W#" + this.id + "][" + this.generalQueue + "]" + " Received General STATE'");
                 byte[] bytes = delivery.getBody();
                 GeneralState generalState = (GeneralState) SerializationUtils.deserialize(bytes);
-                this.hashes = generalState.getHashes();
                 if(generalState.isPause()) {
                     // TODO STOP WORKING!!!!
                 }
@@ -195,8 +204,11 @@ public class Worker {
                     // Starts listen to the direct queue
                     this.hashType = generalState.getHashType();
                     this.populateWordsList(generalState.getWordsUrl());     // populates the words ArrayList
+                    this.hashes = generalState.getHashes();
                     this.listenToDirect();                  // when it updates the hash list , then the worker can work
+                    return;
                 }
+                this.hashes = generalState.getHashes();
             };
             this.recvGeralChannel.basicConsume(this.generalQueue, true, listen, consumerTag -> {
             });
@@ -245,15 +257,17 @@ public class Worker {
         }
     }
 
-    public User getTaskOwner() {
+    public String getTaskOwner() {
         return taskOwner;
     }
 
-    public String getGeneralQueue() {
+    public String getGeneralQueue() throws RemoteException {
         return this.generalQueue;
     }
 
-    public int getId() {
+    public int getId() throws RemoteException {
         return id;
     }
+
+
 }

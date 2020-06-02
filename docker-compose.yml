@@ -34,7 +34,7 @@ services:
 
   server:
     build: ./server
-    entrypoint: reflex -s -r '\.java$$' -- sh -c "sleep 1; /app/run-server.sh"
+    entrypoint: /app/run-server.sh
     working_dir: /app
     container_name: rmi_run_server
     environment:

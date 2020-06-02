@@ -8,12 +8,12 @@ import java.util.ArrayList;
 public class User implements Serializable {
     private final String username;
     private int coins;
-    private ArrayList<Worker> workers;
+    private int amountOfWorkers;
 
     public User(String username) {
         this.username = username;
         this.coins = 0;
-        workers = new ArrayList<>();
+        amountOfWorkers =0;
     }
 
     public String getUsername() {
@@ -28,4 +28,11 @@ public class User implements Serializable {
         return coins;
     }
 
+    public int getAmountOfWorkers() {
+        return this.amountOfWorkers;
+    }
+
+    public void addWorker(){
+        this.amountOfWorkers ++;
+    }
 }

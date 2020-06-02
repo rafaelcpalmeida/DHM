@@ -2,6 +2,7 @@ package edu.ufp.inf.sd.dhm.client;
 
 import edu.ufp.inf.sd.dhm.server.*;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
+import edu.ufp.inf.sd.rmi.util.threading.ThreadPool;
 
 import java.io.BufferedReader;
 import java.io.Console;
@@ -66,9 +67,15 @@ public class Client {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
         }
     }
 
+    /**
+     * Loggs the user and returns if successfully logged the AuThSessionRI
+     * @return AuthSessionRi needed for all the actions
+     */
     private AuthSessionRI loginService() throws RemoteException {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Welcome to our wonderful software , would u rather:\n1 - Register\n2 - Login\n> ");
@@ -120,36 +127,20 @@ public class Client {
         }
     }
 
-    private static void rabbitmqtest() throws IOException, TimeoutException {
-        System.out.println("creating taskgroup ....");
-        User user = new User("rolotes");
-        TaskGroup taskGroup = new TaskGroup(20, user, null);
-        /*
-        System.out.println("creating task ....");
-        Task task = new Task(null,2,null,null,20,taskGroup);
-        System.out.println("creating workers ....");
-        Worker worker = new Worker(1,user);
-        Worker worker2 = new Worker(2,user);
-        //task.publish("rolotes123","rolotes_task_send.worker1");
-        task.publishToAllWorkers("GENERAL MESSAGE");
-        task.publishToWorkersQueue("JUST 1 CAN GET THIS");
-        System.out.println("finish");
-        */
-        System.out.println("creating task");
-        Task task = new Task(null, 1, new ArrayList<>(), null, 10, taskGroup);
-        System.out.println("creating 2 workers");
-        Worker worker = new Worker(1, user);
-        Worker worker2 = new Worker(2, user);
-        task.addWorker(worker);
-        task.addWorker(worker2);
-        System.out.println("all done");
-    }
 
-
-    private void chooseOption(AuthSessionRI authSessionRI) throws IOException {
+    /**
+     * Interactive menu for user to choose all options
+     * @param authSessionRI needed for all actions
+     */
+    private void chooseOption(AuthSessionRI authSessionRI) throws IOException, TimeoutException {
         while(true){
             Scanner scanner = new Scanner(System.in);
-            System.out.print("Hello , what do u want to do? \n1 - print task groups\n2 - create task group \n3 - join task group \n> ");
+            System.out.print("Hello , what do u want to do? " +
+                    "\n1 - print task groups" +
+                    "\n2 - create task group " +
+                    "\n3 - join task group " +
+                    "\n4 - add worker to task " +
+                    "\n> ");
             int option1 = scanner.nextInt();
             scanner.nextLine();
             switch (option1){
@@ -165,9 +156,25 @@ public class Client {
                     scanner.nextLine();
                     authSessionRI.joinTaskGroup(option2);
                     break;
+                case 4:
+                    System.out.println("Which task u want to join ur worker?\n> ");
+                    String taskOwner = scanner.nextLine();
+                    scanner.nextLine();
+                    this.createWorker(authSessionRI,taskOwner);
+                    break;
                 default:
                     System.out.println("Wrong option ... ");
             }
         }
+    }
+
+    /**
+     * Creates a new worker who has 1 thread
+     * @param authSessionRI with all the methods from the session
+     * @param taskOwner owner's name
+     */
+    private void createWorker(AuthSessionRI authSessionRI, String taskOwner) throws IOException, TimeoutException {
+        Worker worker = new Worker(authSessionRI.getUser().getAmountOfWorkers() + 1,authSessionRI.getUser(),taskOwner);
+        authSessionRI.addWorkerToTask(taskOwner,worker);
     }
 }

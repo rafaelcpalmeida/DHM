@@ -1,10 +1,15 @@
 package edu.ufp.inf.sd.dhm.server;
 
+import edu.ufp.inf.sd.dhm.client.Worker;
+import edu.ufp.inf.sd.dhm.client.WorkerRI;
+
+import java.io.IOException;
 import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.TimeoutException;
 
 public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionRI{
     private DBMockup db;
@@ -40,6 +45,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         TaskGroup taskGroup = this.getTaskGroupFrom(taskOwner);
         taskGroup.addUser(this.user);
         this.db.insert(taskGroup,this.user);
+        System.out.println(username + " added to task group!");
     }
 
     /**
@@ -87,7 +93,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      * @throws RemoteException if remote error
      */
     @Override
-    public String createTaskGroup() throws RemoteException {
+    public String createTaskGroup() throws IOException, TimeoutException {
         TaskGroup taskGroup = new TaskGroup(this.user.getCoins(),this.user,this.db);
         taskGroup.addUser(this.user);
         this.db.insert(taskGroup,user);     // inserting in db
@@ -102,6 +108,33 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     public void logout() throws RemoteException {
         this.db.removeSession(this.user);
         //System.exit(1);
+    }
+
+    /**
+     * Adds a worker to a task
+     * @param taskOwner who has the task
+     * @param worker added to task
+     */
+    public void addWorkerToTask(String taskOwner, WorkerRI worker) throws RemoteException{
+        User userTaskOwner = this.db.getUser(taskOwner);
+        if(taskOwner == null){
+            System.out.println("Owner not found ...");
+            return;
+        }
+        System.out.println("adding worker ...");
+        TaskGroup taskGroup = this.getTaskGroupFrom(userTaskOwner);
+        taskGroup.getTask().addWorker(worker);
+        this.user.addWorker();
+        System.out.println("Worker added to task!");
+    }
+
+    @Override
+    public User getUserFromName(String username) throws RemoteException {
+        return this.db.getUser(username);
+    }
+
+    public User getUser(){
+        return this.user;
     }
 
     /**

@@ -1,7 +1,9 @@
 package edu.ufp.inf.sd.dhm.server;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Has the task
@@ -13,11 +15,16 @@ public class TaskGroup {
     private DBMockup db;
     private ArrayList<User> users;
 
-    public TaskGroup(int coinPool, User owner, DBMockup db) {
+    public TaskGroup(int coinPool, User owner, DBMockup db) throws IOException, TimeoutException {
         this.coinPool = coinPool;
         this.owner = owner;
         this.db = db;
         this.users = new ArrayList<>();
+        ArrayList<String> pumba = new ArrayList<>();
+        pumba.add("aOJSDHNAIYUBHSDIAJSDFSadsf");
+        pumba.add("AKSDJIO:ASJDIOAJSD");
+
+        this.task = new Task("sha1",0,pumba,null,10,this);
     }
 
     /**

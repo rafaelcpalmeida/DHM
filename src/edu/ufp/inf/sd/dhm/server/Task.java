@@ -3,6 +3,7 @@ package edu.ufp.inf.sd.dhm.server;
 import com.rabbitmq.client.*;
 import edu.ufp.inf.sd.dhm.Rabbit;
 import edu.ufp.inf.sd.dhm.client.Worker;
+import edu.ufp.inf.sd.dhm.client.WorkerRI;
 import edu.ufp.inf.sd.dhm.server.states.GeneralState;
 import edu.ufp.inf.sd.dhm.server.states.HashSate;
 import edu.ufp.inf.sd.dhm.server.states.TaskState;
@@ -11,6 +12,7 @@ import org.apache.commons.lang3.SerializationUtils;
 import java.io.*;
 import java.net.*;
 import java.net.URL;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
@@ -24,7 +26,7 @@ public class Task {
     private ArrayList<String> words;                // has all the words to mine
     private ArrayList<String> digests = new ArrayList<>();        // hashes wanted to be mined
     private ArrayList<StringGroup> freeStringGroups;        // Available string groups for workers to use
-    private HashMap<Integer,Worker> workers = new HashMap<>();                // all workers from this task
+    private HashMap<Integer,WorkerRI> workers = new HashMap<>();                // all workers from this task
     //private HashMap<Worker, StringGroup> busyStringGroups;   // String groups that are already being used by workers
     private String recvQueue;       // name of the receiving channel (hash states)
     private String sendQueue;       // name of the sending channel  (task states)
@@ -163,7 +165,7 @@ public class Task {
      * Adds a worker to workers HashMap and
      * @param worker added
      */
-    public void addWorker(Worker worker){
+    public void addWorker(WorkerRI worker) throws RemoteException {
         System.out.println(" Adding worker to queue ...");
         this.workers.put(worker.getId(),worker);
         this.startWorker(worker);
@@ -173,7 +175,7 @@ public class Task {
      *
      * @param worker who is starting the work
      */
-    private void startWorker(Worker worker){
+    private void startWorker(WorkerRI worker) throws RemoteException {
         worker.start();
         String workerQueue = worker.getGeneralQueue();
         this.publishToQueue(new GeneralState(this.digests,false,this.hashType,this.url),workerQueue);
