@@ -21,10 +21,10 @@ public class TaskGroup {
         this.db = db;
         this.users = new ArrayList<>();
         ArrayList<String> pumba = new ArrayList<>();
-        pumba.add("aOJSDHNAIYUBHSDIAJSDFSadsf");
-        pumba.add("AKSDJIO:ASJDIOAJSD");
-
-        this.task = new Task("sha1",0,pumba,null,10,this);
+        pumba.add("ca244d081350810113cfafa278ffd581");
+        pumba.add("0af02a064941987e351881689616f2cc");
+        pumba.add("d29e09dce7d175b2ed0a6de9082d2518");
+        this.task = new Task(AvailableDigestAlgorithms.MD2,100,pumba,5,this);
     }
 
     /**

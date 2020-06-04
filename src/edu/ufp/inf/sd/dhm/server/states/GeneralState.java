@@ -1,5 +1,7 @@
 package edu.ufp.inf.sd.dhm.server.states;
 
+import edu.ufp.inf.sd.dhm.server.AvailableDigestAlgorithms;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 
@@ -8,11 +10,11 @@ import java.util.ArrayList;
  */
 public class GeneralState implements Serializable {
     private ArrayList<String> hashes = new ArrayList<>();
-    private String hashType;
+    private AvailableDigestAlgorithms hashType;
     private String wordsUrl;
     private boolean pause;
 
-    public GeneralState(ArrayList<String> hashes, boolean pause, String hashType, String wordsUrl) {
+    public GeneralState(ArrayList<String> hashes, boolean pause, AvailableDigestAlgorithms hashType, String wordsUrl) {
         this.hashes = hashes;
         this.pause = pause;
         this.hashType = hashType;
@@ -27,7 +29,7 @@ public class GeneralState implements Serializable {
         return pause;
     }
 
-    public String getHashType() {
+    public AvailableDigestAlgorithms getHashType() {
         return hashType;
     }
 

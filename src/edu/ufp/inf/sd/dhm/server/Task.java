@@ -20,8 +20,7 @@ import java.util.concurrent.TimeoutException;
 public class Task {
     private String url = "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/darkc0de.txt";
     private final TaskGroup taskGroup;                 // TaskGroup created
-    private final File passwFile;                     // File with all the passwords
-    private final String hashType;                    // hash type ex. SHA1 , MD5 ...
+    private final AvailableDigestAlgorithms hashType;                    // hash type ex. SHA1 , MD5 ...
     private int coins;                          // coins remaining
     private ArrayList<String> words;                // has all the words to mine
     private ArrayList<String> digests = new ArrayList<>();        // hashes wanted to be mined
@@ -40,16 +39,14 @@ public class Task {
      * @param hashType  ex. MD5 , SHA1 , etc ...
      * @param coins     remaining
      * @param digests   array with the hashes
-     * @param file      with all the passwords
      * @param deltaSize amount of lines a single worker need to make in each StringGroup
      */
-    public Task(String hashType, int coins, ArrayList<String> digests, File file, int deltaSize, TaskGroup taskGroup) throws IOException, TimeoutException {
+    public Task(AvailableDigestAlgorithms hashType, int coins, ArrayList<String> digests, int deltaSize, TaskGroup taskGroup) throws IOException, TimeoutException {
         // TODO change hashType to enum
         this.db = taskGroup.getDb();
         this.hashType = hashType;
         this.coins = coins;
         this.digests = digests;
-        this.passwFile = file;
         this.taskGroup = taskGroup;
         // TODO break me
         // Need to populate the free string group
@@ -192,6 +189,7 @@ public class Task {
                 System.out.println("[RECV][TASK]" + " Received message from worker");
                 byte[] bytes = delivery.getBody();
                 HashSate hashSate = (HashSate) SerializationUtils.deserialize(bytes);
+                System.out.println(hashSate.toString());
                 switch (hashSate.getStatus()){
                     case NEED_HASHES:
                         break;
@@ -199,7 +197,7 @@ public class Task {
                         //TODO DONE!
                         break;
                     case MATCH:
-                        // TODO MATCH
+                        System.out.println("received a match for " + hashSate.getHash() + "w/ word " + hashSate.getWord());
                         break;
                     case DONE_AND_MATCH:
                         // TODO DONE_AND_MATCH

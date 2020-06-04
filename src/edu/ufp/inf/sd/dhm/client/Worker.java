@@ -2,6 +2,7 @@ package edu.ufp.inf.sd.dhm.client;
 
 import com.rabbitmq.client.*;
 import edu.ufp.inf.sd.dhm.Rabbit;
+import edu.ufp.inf.sd.dhm.server.AvailableDigestAlgorithms;
 import edu.ufp.inf.sd.dhm.server.StringGroup;
 import edu.ufp.inf.sd.dhm.server.User;
 import edu.ufp.inf.sd.dhm.server.states.GeneralState;
@@ -38,7 +39,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     private ArrayList<String> hashes = new ArrayList<>();
     private ArrayList<String> words = new ArrayList<>();
     private long deliveryTag;
-    private String hashType;
+    private AvailableDigestAlgorithms hashType;
     private WorkerThread workerThread;
     private Thread thread;
 
@@ -115,11 +116,14 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
                 System.out.println("deserializatin taskstate");
                 byte[] bytes = delivery.getBody();
                 TaskState taskState = (TaskState) SerializationUtils.deserialize(bytes);
+                this.original = taskState.getStringGroup();
                 System.out.println(taskState.toString());
-                if(this.workerThread == null) this.workerThread = new WorkerThread(taskState);
+                if(this.workerThread == null) this.workerThread = new WorkerThread(taskState,this);
                 this.workerThread.setTaskState(taskState);
+                this.workerThread.setDeliveryTag(delivery.getEnvelope().getDeliveryTag());
                 if(this.thread != null){
-                    thread.interrupt();
+                    this.thread.interrupt();
+                    this.thread = null;
                 }
                 this.thread = new Thread(this.workerThread);
                 this.thread.start();
@@ -134,33 +138,19 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     }
 
     /**
-     * The working from the worker
-     * Mines all the passwords
-     * @param taskState to mine
-     */
-    private void work(TaskState taskState){
-        // TODO work method
-        System.out.println("im working bitch ...");
-    }
-
-    /**
      * Send an HashState to the task to inform about something
      * @param match if found a match
      * @param done if done with all the StringGroup
      */
-    private void sendHashState(boolean match, boolean done){
+    private void sendHashState(boolean match, boolean done, String word, String hash){
         int originalCeiling = this.original.getCeiling();
         int lastLine = originalCeiling + this.original.getDelta();
         int newDelta = lastLine - this.currentLine;
         StringGroup pending = new StringGroup(this.currentLine, newDelta);
-        ArrayList<String> matches = new ArrayList<>();
-        if(match){
-            // TODO if has match add to the matches array
-        }
         WorkerStatus workerStatus = WorkerStatus.MATCH;
         if(done) workerStatus = WorkerStatus.DONE;
         if(done && match) workerStatus = WorkerStatus.DONE_AND_MATCH;
-        HashSate hashSate = new HashSate(workerStatus, this.original, pending, matches,this.id);
+        HashSate hashSate = new HashSate(workerStatus, this.original, pending, hash,this.id,word);
         this.publish(hashSate);
     }
 
@@ -168,11 +158,21 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
      * Send a confirmation that the StringGroup is done!
      * @param match if has a match
      */
-    private void doneWithStringGroup(boolean match){
+    public void doneWithStringGroup(boolean match, long deliveryTagThread){
         System.out.println("Sending ack and hash state ...");
-        this.sendHashState(match,true);
+        this.sendHashState(match,true,"","");
         try {
-            this.recvDirectChannel.basicAck(this.deliveryTag,false);
+            this.recvDirectChannel.basicAck(deliveryTagThread,false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void match(String word, String hash, long deliveryTagThread){
+        System.out.println("Sending information that we found a match!");
+        this.sendHashState(true,false,word,hash);
+        try {
+            this.recvDirectChannel.basicAck(deliveryTagThread,false);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -269,5 +269,19 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         return id;
     }
 
+    public ArrayList<String> getHashes() {
+        return hashes;
+    }
 
+    public ArrayList<String> getWords() {
+        return words;
+    }
+
+    public AvailableDigestAlgorithms getHashType() {
+        return hashType;
+    }
+
+    public void setCurrentLine(int currentLine) {
+        this.currentLine = currentLine;
+    }
 }
