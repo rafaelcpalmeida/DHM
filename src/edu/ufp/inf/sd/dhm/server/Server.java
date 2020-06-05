@@ -1,5 +1,6 @@
 package edu.ufp.inf.sd.dhm.server;
 
+import edu.ufp.inf.sd.dhm.client.Worker;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 
 import java.rmi.RemoteException;
@@ -9,6 +10,8 @@ import java.util.logging.Logger;
 
 public class Server {
     //make run-server PACKAGE_NAME=edu.ufp.inf.sd.dhm.server.Server SERVICE_NAME=DhmService
+    private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
+
     private SetupContextRMI contextRMI;
 
     private AuthFactoryRI authFactoryRI;
@@ -35,19 +38,19 @@ public class Server {
 
                 //Get service url (including servicename)
                 String serviceUrl = contextRMI.getServicesUrl(0);
-                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "going to rebind service @ {0}", serviceUrl);
+                LOGGER.info("going to rebind service " + serviceUrl);
 
                 //============ Rebind servant ============
                 //Naming.bind(serviceUrl, helloWorldRI);
                 registry.rebind(serviceUrl, authFactoryRI);
-                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "service bound and running. :)");
+                LOGGER.info("service bound and running. :)");
             } else {
-                //System.out.println("CalculadorServer - Constructor(): create registry on port 1099");
-                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "registry not bound (check IPs). :(");
+                //LOGGER.info("CalculadorServer - Constructor(): create registry on port 1099");
+                LOGGER.info("registry not bound (check IPs). :(");
                 //registry = LocateRegistry.createRegistry(1099);
             }
         } catch (RemoteException ex) {
-            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
+            LOGGER.severe(ex.toString());
         }
     }
 
@@ -58,7 +61,7 @@ public class Server {
             String serviceName  = args[2];
             contextRMI = new SetupContextRMI(this.getClass(), registryIP, registryPort, new String[]{serviceName});
         } catch (RemoteException e) {
-            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, e);
+            LOGGER.severe(e.toString());
         }
     }
 

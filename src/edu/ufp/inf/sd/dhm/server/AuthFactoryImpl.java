@@ -1,6 +1,7 @@
 package edu.ufp.inf.sd.dhm.server;
 
 import edu.ufp.inf.sd.dhm.client.Guest;
+import edu.ufp.inf.sd.dhm.client.Worker;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
@@ -8,6 +9,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class AuthFactoryImpl extends UnicastRemoteObject implements AuthFactoryRI {
+    private static final Logger LOGGER = Logger.getLogger(AuthFactoryImpl.class.getName());
     private DBMockup db;
 
     public AuthFactoryImpl() throws RemoteException {
@@ -48,7 +50,7 @@ public class AuthFactoryImpl extends UnicastRemoteObject implements AuthFactoryR
             }
             return this.db.getSession(user);
         }
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "User not found!");
+        LOGGER.warning("User not found!");
         return null;
     }
 }

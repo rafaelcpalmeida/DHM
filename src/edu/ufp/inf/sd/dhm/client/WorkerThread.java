@@ -12,10 +12,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 // Possible algorithms: "MD4", "SHA-1", "SHA-224", "SHA-256", "SHA-384", "SHA-512", "RIPEMD128", "RIPEMD160"
 // , "RIPEMD256", "RIPEMD320", "Tiger", "DHA256", e "FORK256".
 public class WorkerThread implements Runnable {
+    private static final Logger LOGGER = Logger.getLogger(WorkerThread.class.getName());
     private TaskState taskState;
     private Worker worker;
     private List<String> words;
@@ -37,9 +39,12 @@ public class WorkerThread implements Runnable {
     @Override
     public void run() {
         try {
-            System.out.println("Thread from worker " + this.worker.getId() + " is getting started ...");
-            this.populateStringGroupWords();                    // populate this.words with the words from @StringGroup
-            this.work();
+            if(!this.worker.isStop()){
+                LOGGER.info("Thread from worker " + this.worker.getId() + " is getting started ...");
+                this.populateStringGroupWords();                    // populate this.words with the words from @StringGroup
+                this.work();
+            }
+            LOGGER.info("stopping thread");
         } catch (RemoteException e) {
             e.printStackTrace();
         } catch (NoSuchAlgorithmException e) {
@@ -54,34 +59,35 @@ public class WorkerThread implements Runnable {
     private void work() throws NoSuchAlgorithmException, UnsupportedEncodingException, RemoteException, InterruptedException {
         String hashType = String.valueOf(this.worker.getHashType()).replace("_", "-");
         MessageDigest algorithm = MessageDigest.getInstance(hashType);
-        System.out.println("printing digests");
+        LOGGER.info("printing digests");
         this.hashes.forEach(digest -> {
-            System.out.println(digest);
+            LOGGER.info(digest);
         });
         for (String word : this.words) {
-            //System.out.println("I'm currently in line " + this.currentLine);
+            //LOGGER.info("I'm currently in line " + this.currentLine);
+            if(this.worker.isStop()) return;
             byte[] hashByte = algorithm.digest(word.getBytes(StandardCharsets.UTF_8));
             String digest = this.byteToString(hashByte);
-            //System.out.println("Word -> " + word + " Digest ->  " + digest);
+            //LOGGER.info("Word -> " + word + " Digest ->  " + digest);
             if (this.hashes.contains(digest)) {
                 // Match done!
-                System.out.println("Worker#" + this.worker.getId() + " had a match w/ word: " + word + " w/ hash: "
+                LOGGER.info("Worker#" + this.worker.getId() + " had a match w/ word: " + word + " w/ hash: "
                         + digest);
                 this.worker.setCurrentLine(this.currentLine);
                 this.worker.match(word,digest,this.deliveryTag);
-                System.out.println("removig digest " + digest);
-                this.hashes.remove(digest);  // removes hash from arraylist of hashes
+                //LOGGER.info("removig digest " + digest);
+                //this.hashes.remove(digest);  // removes hash from arraylist of hashes
                 if(this.hashes.isEmpty()){
-                    System.out.println("no more hashses , im kill ma self");
-                    Thread.currentThread().interrupt();
+                    LOGGER.info("NO MORE HASHESSSSSSSSSSS");
+                    //Thread.currentThread().interrupt();
                 }
             }
             this.currentLine++;
-
             //Thread.sleep(1000);
         }
-        System.out.println("I'm currently in line " + this.currentLine);
-        System.out.println("Done with string group , going to tell the task!");
+        LOGGER.info("I'm currently in line " + this.currentLine);
+        LOGGER.info("Done with string group , going to tell the task!");
+        LOGGER.info("DELIVERY TAG-> " + this.deliveryTag);
         this.worker.doneWithStringGroup(false,this.deliveryTag);
     }
 
@@ -90,7 +96,7 @@ public class WorkerThread implements Runnable {
      * StringGroup sent by the TaskState
      */
     private void populateStringGroupWords() {
-        System.out.println("Populating thread string group words...");
+        LOGGER.info("Populating thread string group words...");
         StringGroup stringGroup = this.taskState.getStringGroup();
         this.words = this.worker.getWords().subList(stringGroup.getCeiling(),
                 stringGroup.getCeiling() + stringGroup.getDelta());
@@ -107,7 +113,7 @@ public class WorkerThread implements Runnable {
     private String byteToString(byte[] bytes){
         StringBuilder hexString = new StringBuilder();
         for (byte b : bytes) {
-            hexString.append(String.format("%02x", 0xFF & b));
+            hexString.append(String.format("%02X", 0xFF & b));
         }
         return hexString.toString();
     }

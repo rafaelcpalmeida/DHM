@@ -14,15 +14,16 @@ import org.apache.commons.lang3.SerializationUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Logger;
 
 public class Worker extends UnicastRemoteObject implements WorkerRI{
+    private static final Logger LOGGER = Logger.getLogger(Worker.class.getName());
     private final int id;
     private int coinsEarnt;
     private User owner;
@@ -38,10 +39,10 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     private int currentLine  = 0;
     private ArrayList<String> hashes = new ArrayList<>();
     private ArrayList<String> words = new ArrayList<>();
-    private long deliveryTag;
     private AvailableDigestAlgorithms hashType;
     private WorkerThread workerThread;
-    private Thread thread;
+    private Thread workingThread;
+    private boolean stop = false;
 
 
     /**
@@ -59,6 +60,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         this.createQueueNamesAndExchange(taskOwner);
         this.createChannels();
         this.declareQueuesAndExchange();
+
     }
 
     public void start() throws RemoteException{
@@ -110,30 +112,26 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     private void listenToDirect() {
         try {
             DeliverCallback work = (consumerTag, delivery) -> {
-                // TODO make the callback to the received message from the task queue
-                this.deliveryTag = delivery.getEnvelope().getDeliveryTag();
-                System.out.println("W#" + this.id + " working ...");
-                System.out.println("deserializatin taskstate");
+                this.workingThread = Thread.currentThread();
+                //LOGGER.info("W#" + this.id + " working ...");
+                //LOGGER.info("deserializatin taskstate");
                 byte[] bytes = delivery.getBody();
                 TaskState taskState = (TaskState) SerializationUtils.deserialize(bytes);
                 this.original = taskState.getStringGroup();
-                System.out.println(taskState.toString());
-                if(this.workerThread == null) this.workerThread = new WorkerThread(taskState,this);
-                this.workerThread.setTaskState(taskState);
+                //LOGGER.info("I'm currently on thread + " +  Thread.currentThread().getName());
+                //LOGGER.info("This is this thread delivery tag " + delivery.getEnvelope().getDeliveryTag());
+                LOGGER.info(taskState.toString());
+                this.workerThread = new WorkerThread(taskState,this);
                 this.workerThread.setDeliveryTag(delivery.getEnvelope().getDeliveryTag());
-                if(this.thread != null){
-                    this.thread.interrupt();
-                    this.thread = null;
-                }
-                this.thread = new Thread(this.workerThread);
-                this.thread.start();
+                this.workerThread.run();
             };
             this.recvDirectChannel.basicConsume(this.recvDirectQueue, false, work, consumerTag -> {
-                System.out.println("canceling");
+                LOGGER.warning("Killing worker #" + this.id);
+                this.recvGeralChannel.queueDelete(this.generalQueue);
             });
         } catch (Exception e) {
-            System.out.println("[ERROR] Exception in worker.listen()");
-            System.out.println(e.getMessage());
+            LOGGER.severe("[ERROR] Exception in worker.listen()");
+            LOGGER.severe(e.getMessage());
         }
     }
 
@@ -159,8 +157,8 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
      * @param match if has a match
      */
     public void doneWithStringGroup(boolean match, long deliveryTagThread){
-        System.out.println("Sending ack and hash state ...");
         this.sendHashState(match,true,"","");
+        LOGGER.info("Sending ack and hash state w/ deliveryTag " + deliveryTagThread);
         try {
             this.recvDirectChannel.basicAck(deliveryTagThread,false);
         } catch (IOException e) {
@@ -169,13 +167,8 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     }
 
     public void match(String word, String hash, long deliveryTagThread){
-        System.out.println("Sending information that we found a match!");
+        LOGGER.info("Sending information that we found a match!");
         this.sendHashState(true,false,word,hash);
-        try {
-            this.recvDirectChannel.basicAck(deliveryTagThread,false);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -193,13 +186,23 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     private void listenToGeneral() {
         try {
             DeliverCallback listen = (consumerTag, delivery) -> {
-                System.out.println("[RECV][W#" + this.id + "][" + this.generalQueue + "]" + " Received General STATE'");
+                LOGGER.info("[RECV][W#" + this.id + "][" + this.generalQueue + "]" + " Received General STATE'");
                 byte[] bytes = delivery.getBody();
                 GeneralState generalState = (GeneralState) SerializationUtils.deserialize(bytes);
+                LOGGER.info(generalState.toString());
                 if(generalState.isPause()) {
                     // TODO STOP WORKING!!!!
                 }
-                if(hashes.isEmpty()){
+                if(generalState.getHashes() == null){
+                    // No more hashes to be found = no more work to do
+                    this.workingThread.interrupt();
+                    this.workerThread = null;
+                    LOGGER.info("Thread killed because there are no more hashes :(");
+                    Thread.currentThread().interrupt();
+                    this.stop = true;
+                    return;
+                }
+                if(this.hashes.isEmpty()){
                     // If the hashes arraylist is empty , then the worker just got join
                     // Starts listen to the direct queue
                     this.hashType = generalState.getHashType();
@@ -214,8 +217,8 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
             });
 
         } catch (Exception e) {
-            System.out.println("[ERROR] Exception in worker.listen()");
-            System.out.println(e.getMessage());
+            LOGGER.severe("[ERROR] Exception in worker.listen()");
+            LOGGER.severe(e.getMessage());
         }
     }
 
@@ -225,7 +228,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
      */
     private void populateWordsList(String wordsUrl) {
         URL url = null;
-        System.out.println("Populating words list array ...");
+        LOGGER.info("Populating words list array ...");
         try {
             url = new URL(wordsUrl);
             BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
@@ -239,7 +242,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("Done populating word lists!");
+        LOGGER.info("Done populating word lists!");
     }
 
     /**
@@ -250,10 +253,10 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         try {
             byte[] hashStateBytes =  SerializationUtils.serialize(hashSate);
             this.sendChannel.basicPublish("", this.sendQueue, null, hashStateBytes);
-            System.out.println("[SEND][W#" + this.id + "]" + " Sent hashing state'");
+            LOGGER.info("[SEND][W#" + this.id + "]" + " Sent hashing state'");
         } catch (Exception e) {
-            System.out.println("[ERROR] Exception in worker.publish()");
-            System.out.println(e.getMessage());
+            LOGGER.severe("[ERROR] Exception in worker.publish()");
+            LOGGER.severe(e.getMessage());
         }
     }
 
@@ -283,5 +286,9 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
 
     public void setCurrentLine(int currentLine) {
         this.currentLine = currentLine;
+    }
+
+    public boolean isStop() {
+        return stop;
     }
 }

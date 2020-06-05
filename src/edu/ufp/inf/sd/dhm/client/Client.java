@@ -2,23 +2,23 @@ package edu.ufp.inf.sd.dhm.client;
 
 import edu.ufp.inf.sd.dhm.server.*;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
-import edu.ufp.inf.sd.rmi.util.threading.ThreadPool;
-
-import java.io.BufferedReader;
-import java.io.Console;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
-import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Client {
+    private static final Logger LOGGER;
+    static {
+        System.setProperty("java.util.logging.SimpleFormatter.format",
+                "\033[32m%1$tF %1$tT\033[39m \u001b[33m[%4$-7s]\u001b[0m %5$s %n");
+        LOGGER = Logger.getLogger(Client.class.getName());
+    }
     //make run-client PACKAGE_NAME=edu.ufp.inf.sd.dhm.client.Client SERVICE_NAME=DhmService
     private SetupContextRMI contextRMI;
     private AuthFactoryRI authFactoryRI;
@@ -29,7 +29,7 @@ public class Client {
             String serviceName  = args[2];
             contextRMI = new SetupContextRMI(this.getClass(), registryIP, registryPort, new String[]{serviceName});
         } catch (RemoteException e) {
-            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, e);
+            LOGGER.severe(e.getMessage());
         }
     }
 
@@ -59,12 +59,12 @@ public class Client {
         try {
             AuthSessionRI authSessionRI = this.loginService();
             if (authSessionRI != null) {
-                System.out.println("Session started !");
+                LOGGER.info("Session started !");
                 this.chooseOption(authSessionRI);
             }
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Going to finish ...");
+            LOGGER.info("Going to finish ...");
         } catch (RemoteException ex) {
-            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
+            LOGGER.severe(ex.toString());
         } catch (IOException e) {
             e.printStackTrace();
         } catch (TimeoutException e) {
@@ -78,34 +78,34 @@ public class Client {
      */
     private AuthSessionRI loginService() throws RemoteException {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Welcome to our wonderful software , would u rather:\n1 - Register\n2 - Login\n> ");
+        LOGGER.info("Welcome to our wonderful software , would u rather:\n1 - Register\n2 - Login\n> ");
         int option = scanner.nextInt();
         scanner.nextLine();
         switch (option){
             case 1:
-                System.out.println("You are about to register our service ...\nPlease tell us the username u want to register:\n> ");
+                LOGGER.info("You are about to register our service ...\nPlease tell us the username u want to register:\n> ");
                 String name = scanner.nextLine();
                 scanner.nextLine();
-                System.out.println("Now tell us the password , dont worry , we ain't peeking:\n> ");
+                LOGGER.info("Now tell us the password , dont worry , we ain't peeking:\n> ");
                 String passwd = scanner.nextLine();
                 scanner.nextLine();
                 Guest guest = new Guest(name,passwd);
                 if(this.authFactoryRI.register(guest)){
                     // success
-                    System.out.println("Welcome " + guest.getUsername() + " , ur session is starting ...");
+                    LOGGER.info("Welcome " + guest.getUsername() + " , ur session is starting ...");
                     return this.authFactoryRI.login(guest);
                 }
-                System.out.println("Could not register your account :/");
+                LOGGER.info("Could not register your account :/");
                 return null;
             case 2:
-                System.out.println("username:\n> ");
+                LOGGER.info("username:\n> ");
                 String name2 = scanner.nextLine();
                 scanner.nextLine();
-                System.out.println("password:\n> ");
+                LOGGER.info("password:\n> ");
                 String passwd2 = scanner.nextLine();
                 scanner.nextLine();
                 Guest guest2 = new Guest(name2,passwd2);
-                System.out.println("Welcome " + guest2.getUsername() + " , ur session is starting ...");
+                LOGGER.info("Welcome " + guest2.getUsername() + " , ur session is starting ...");
                 return this.authFactoryRI.login(guest2);
             default:
                 return this.loginService();
@@ -145,25 +145,25 @@ public class Client {
             scanner.nextLine();
             switch (option1){
                 case 1:
-                    System.out.println(authSessionRI.printTaskGroups());
+                    LOGGER.info(authSessionRI.printTaskGroups());
                     break;
                 case 2:
-                    System.out.println(authSessionRI.createTaskGroup());
+                    LOGGER.info(authSessionRI.createTaskGroup());
                     break;
                 case 3:
-                    System.out.println("Which task u want to join?\n> ");
+                    LOGGER.info("Which task u want to join?\n> ");
                     String option2 = scanner.nextLine();
                     scanner.nextLine();
                     authSessionRI.joinTaskGroup(option2);
                     break;
                 case 4:
-                    System.out.println("Which task u want to join ur worker?\n> ");
+                    LOGGER.info("Which task u want to join ur worker?\n> ");
                     String taskOwner = scanner.nextLine();
                     scanner.nextLine();
                     this.createWorker(authSessionRI,taskOwner);
                     break;
                 default:
-                    System.out.println("Wrong option ... ");
+                    LOGGER.info("Wrong option ... ");
             }
         }
     }

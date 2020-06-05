@@ -36,4 +36,14 @@ public class GeneralState implements Serializable {
     public String getWordsUrl() {
         return wordsUrl;
     }
+
+    @Override
+    public String toString() {
+        return "GeneralState{" +
+                "hashes=" + hashes +
+                ", hashType=" + hashType +
+                ", wordsUrl='" + wordsUrl + '\'' +
+                ", pause=" + pause +
+                '}';
+    }
 }

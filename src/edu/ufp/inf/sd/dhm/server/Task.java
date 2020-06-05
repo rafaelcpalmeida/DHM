@@ -16,8 +16,10 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Logger;
 
 public class Task {
+    private static final Logger LOGGER = Logger.getLogger(Task.class.getName());
     private String url = "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/darkc0de.txt";
     private final TaskGroup taskGroup;                 // TaskGroup created
     private final AvailableDigestAlgorithms hashType;                    // hash type ex. SHA1 , MD5 ...
@@ -26,7 +28,7 @@ public class Task {
     private ArrayList<String> digests = new ArrayList<>();        // hashes wanted to be mined
     private ArrayList<StringGroup> freeStringGroups;        // Available string groups for workers to use
     private HashMap<Integer,WorkerRI> workers = new HashMap<>();                // all workers from this task
-    //private HashMap<Worker, StringGroup> busyStringGroups;   // String groups that are already being used by workers
+    private HashMap<String,String> wordsFound;
     private String recvQueue;       // name of the receiving channel (hash states)
     private String sendQueue;       // name of the sending channel  (task states)
     private Channel recvChannel;    // channel used to receive info from workers
@@ -44,6 +46,7 @@ public class Task {
     public Task(AvailableDigestAlgorithms hashType, int coins, ArrayList<String> digests, int deltaSize, TaskGroup taskGroup) throws IOException, TimeoutException {
         // TODO change hashType to enum
         this.db = taskGroup.getDb();
+        this.wordsFound = new HashMap<>();
         this.hashType = hashType;
         this.coins = coins;
         this.digests = digests;
@@ -68,13 +71,13 @@ public class Task {
      * Populates the worker's queue with @TaskState instances
      */
     private void populateWorkersQueue() {
-        System.out.println("Populating workers queue ...");
+        LOGGER.info("Populating workers queue ...");
         for (StringGroup stringGroup : this.freeStringGroups) {
             TaskState taskState = new TaskState(stringGroup);
             byte[] taskStateBytes =  SerializationUtils.serialize(taskState);
             this.publishToWorkersQueue(taskStateBytes);
         }
-        System.out.println("Finished populate workers queue !");
+        LOGGER.info("Finished populate workers queue !");
     }
 
     /**
@@ -128,7 +131,7 @@ public class Task {
         this.freeStringGroups = new ArrayList<>();
         this.words = new ArrayList<>();
         URL oracle = null;
-        System.out.println("Populating string group array ...");
+        LOGGER.info("Populating string group array ...");
         try {
             oracle = new URL(url);
             BufferedReader in = new BufferedReader(new InputStreamReader(oracle.openStream()));
@@ -141,7 +144,7 @@ public class Task {
                     count = 0;
                 }
                 count++;
-                //System.out.println(inputLine);
+                //LOGGER.info(inputLine);
                 this.words.add(inputLine);
                 totalLines++;
             }
@@ -151,7 +154,7 @@ public class Task {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("Done populating free string group!");
+        LOGGER.info("Done populating free string group!");
     }
 
     public ArrayList<String> getWords() {
@@ -163,7 +166,7 @@ public class Task {
      * @param worker added
      */
     public void addWorker(WorkerRI worker) throws RemoteException {
-        System.out.println(" Adding worker to queue ...");
+        LOGGER.info(" Adding worker to queue ...");
         this.workers.put(worker.getId(),worker);
         this.startWorker(worker);
     }
@@ -186,18 +189,20 @@ public class Task {
             DeliverCallback listen = (consumerTag, delivery) -> {
                 // TODO make the callback to the received message from the worker queue
                 //String message = new String(delivery.getBody(), "UTF-8");
-                System.out.println("[RECV][TASK]" + " Received message from worker");
+                //LOGGER.info("[RECV][TASK]" + " Received message from worker");
                 byte[] bytes = delivery.getBody();
                 HashSate hashSate = (HashSate) SerializationUtils.deserialize(bytes);
-                System.out.println(hashSate.toString());
+                //LOGGER.info(hashSate.toString());
                 switch (hashSate.getStatus()){
                     case NEED_HASHES:
                         break;
                     case DONE:
                         //TODO DONE!
+                        //LOGGER.info("received a dont w/ string group  ");
                         break;
                     case MATCH:
-                        System.out.println("received a match for " + hashSate.getHash() + "w/ word " + hashSate.getWord());
+                        LOGGER.info("received a match for " + hashSate.getHash() + "w/ word " + hashSate.getWord());
+                        this.updateTaskMatches(hashSate.getWord(),hashSate.getHash());
                         break;
                     case DONE_AND_MATCH:
                         // TODO DONE_AND_MATCH
@@ -210,9 +215,39 @@ public class Task {
             this.recvChannel.basicConsume(this.recvQueue, true, listen, consumerTag -> {
             });
         } catch (Exception e) {
-            System.out.println("[ERROR] Exception in worker.listen()");
-            System.out.println(e.getMessage());
+            LOGGER.severe("[ERROR] Exception in worker.listen()");
+            LOGGER.severe(e.getMessage());
         }
+    }
+
+    /**
+     * Updates all the arraylists when a new match is received
+     * and notifies all workers
+     * @param digestFound hash found
+     * @param wordFound found that is the plain text of @digest
+     */
+    private void updateTaskMatches(String wordFound, String digestFound) throws IOException {
+        this.digests.remove(digestFound);
+        this.wordsFound.put(digestFound,wordFound);
+        GeneralState generalState = new GeneralState(this.digests,false,this.hashType,this.url);
+        if(this.digests.isEmpty()){
+            // All hashes found!
+            this.endTask();
+            return;
+        }
+        //LOGGER.info(generalState.toString());
+        this.publishToAllWorkers(generalState);
+    }
+
+    /**
+     * Send to all workers a GeneralState and deletes the channel
+     */
+    private void endTask() throws IOException {
+        LOGGER.info("All matches found , stop!");
+        GeneralState generalState = new GeneralState(null,false,null,"");
+        this.publishToAllWorkers(generalState);
+        this.sendQueueChannel.queueDelete(this.sendQueue);
+        this.recvChannel.queueDelete(this.recvQueue);
     }
 
     /**
@@ -224,10 +259,10 @@ public class Task {
         try {
             byte[] generalStateBytes =  SerializationUtils.serialize(generalState);
             this.sendQueueChannel.basicPublish("", workerQueue, null, generalStateBytes);
-            //System.out.println("[SENT] New TaskState to workers queues ");
+            //LOGGER.info("[SENT] New TaskState to workers queues ");
         } catch (Exception e) {
-            System.out.println("[ERROR] Exception in task.publishToWorkersQueue()");
-            System.out.println(e.getMessage());
+            LOGGER.severe("[ERROR] Exception in task.publishToWorkersQueue()");
+            LOGGER.severe(e.getMessage());
         }
     }
 
@@ -239,10 +274,10 @@ public class Task {
     private void publishToWorkersQueue(byte[] message) {
         try {
             this.sendQueueChannel.basicPublish("", this.sendQueue, null, message);
-            //System.out.println("[SENT] New TaskState to workers queues ");
+            //LOGGER.info("[SENT] New TaskState to workers queues ");
         } catch (Exception e) {
-            System.out.println("[ERROR] Exception in task.publishToWorkersQueue()");
-            System.out.println(e.getMessage());
+            LOGGER.severe("[ERROR] Exception in task.publishToWorkersQueue()");
+            LOGGER.severe(e.getMessage());
         }
     }
 
@@ -255,10 +290,10 @@ public class Task {
         try {
             byte[] generalStateBytes =  SerializationUtils.serialize(generalState);
             this.sendGeralChannel.basicPublish(this.exchangeName, "", null, generalStateBytes);
-            System.out.println("[SENT] Message from task to all workers!");
+            LOGGER.info("[SENT] Message from task to all workers!");
         } catch (Exception e) {
-            System.out.println("[ERROR] Exception in task.publishToAllWorkers()");
-            System.out.println(e.getMessage());
+            LOGGER.severe("[ERROR] Exception in task.publishToAllWorkers()");
+            LOGGER.severe(e.getMessage());
         }
     }
 

@@ -10,8 +10,10 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Logger;
 
 public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionRI{
+    private static final Logger LOGGER = Logger.getLogger(AuthFactoryImpl.class.getName());
     private DBMockup db;
     private User user;
     private ArrayList<TaskGroup> taskGroups;
@@ -39,13 +41,13 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     public void joinTaskGroup(String username) throws RemoteException {
         User taskOwner = this.db.getUser(username);
         if(taskOwner == null){
-            System.out.println("Owner not found ...");
+            LOGGER.info("Owner not found ...");
             return;
         }
         TaskGroup taskGroup = this.getTaskGroupFrom(taskOwner);
         taskGroup.addUser(this.user);
         this.db.insert(taskGroup,this.user);
-        System.out.println(username + " added to task group!");
+        LOGGER.info(username + " added to task group!");
     }
 
     /**
@@ -63,7 +65,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public String printTaskGroups() throws RemoteException {
         ArrayList<TaskGroup> taskGroups = this.listTaskGroups();
-        System.out.println("Printing available task groups ...");
+        LOGGER.info("Printing available task groups ...");
         StringBuilder builder = new StringBuilder();
         if(!taskGroups.isEmpty()){
             for(TaskGroup taskGroup : taskGroups){
@@ -97,7 +99,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         TaskGroup taskGroup = new TaskGroup(this.user.getCoins(),this.user,this.db);
         taskGroup.addUser(this.user);
         this.db.insert(taskGroup,user);     // inserting in db
-        System.out.println("task group added for owner " + this.user.getUsername());
+        LOGGER.info("task group added for owner " + this.user.getUsername());
         return "Task Group created!";
     }
 
@@ -118,14 +120,14 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     public void addWorkerToTask(String taskOwner, WorkerRI worker) throws RemoteException{
         User userTaskOwner = this.db.getUser(taskOwner);
         if(taskOwner == null){
-            System.out.println("Owner not found ...");
+            LOGGER.info("Owner not found ...");
             return;
         }
-        System.out.println("adding worker ...");
+        LOGGER.info("adding worker ...");
         TaskGroup taskGroup = this.getTaskGroupFrom(userTaskOwner);
         taskGroup.getTask().addWorker(worker);
         this.user.addWorker();
-        System.out.println("Worker added to task!");
+        LOGGER.info("Worker added to task!");
     }
 
     @Override
