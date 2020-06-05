@@ -3,11 +3,16 @@ package edu.ufp.inf.sd.dhm;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import edu.ufp.inf.sd.dhm.server.AuthFactoryImpl;
+
+import java.util.logging.Logger;
 
 /**
  * Generic class to make connection to rabbitmq queues
  */
 public class Rabbit {
+    private static final Logger LOGGER = Logger.getLogger(Rabbit.class.getName());
+
 
     public Rabbit(){}
 
@@ -36,11 +41,11 @@ public class Rabbit {
             Connection connection=factory.newConnection();
             Channel channel=connection.createChannel();
             channel.queueDeclare(recvQueue, false, false, false, null);
-            System.out.println(who + " connected to " + recvQueue);
+            LOGGER.info(who + " connected to " + recvQueue);
             return channel;
         } catch (Exception e) {
-            System.out.println("[ERROR] Exception in rabbit.channelRecv()");
-            System.out.println(e.getMessage());
+            LOGGER.info("[ERROR] Exception in rabbit.channelRecv()");
+            LOGGER.info(e.getMessage());
             return null;
         }
     }
@@ -57,11 +62,11 @@ public class Rabbit {
             Connection connection=factory.newConnection();
             Channel channel=connection.createChannel();
             channel.queueDeclare(sendQueue, false, false, false, null);
-            System.out.println(who + " connected to " + sendQueue);
+            LOGGER.info(who + " connected to " + sendQueue);
             return channel;
         } catch (Exception e) {
-            System.out.println("[ERROR] Exception in rabbit.channelSend()");
-            System.out.println(e.getMessage());
+            LOGGER.severe("[ERROR] Exception in rabbit.channelSend()");
+            LOGGER.severe(e.getMessage());
             return null;
         }
     }
