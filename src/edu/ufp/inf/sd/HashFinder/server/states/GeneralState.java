@@ -1,6 +1,6 @@
-package edu.ufp.inf.sd.dhm.server.states;
+package edu.ufp.inf.sd.HashFinder.server.states;
 
-import edu.ufp.inf.sd.dhm.server.AvailableDigestAlgorithms;
+import edu.ufp.inf.sd.HashFinder.server.AvailableDigestAlgorithms;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -9,10 +9,10 @@ import java.util.ArrayList;
  * Task --> Fanout --> Workers
  */
 public class GeneralState implements Serializable {
-    private ArrayList<String> hashes = new ArrayList<>();
-    private AvailableDigestAlgorithms hashType;
-    private String wordsUrl;
-    private boolean pause;
+    private final ArrayList<String> hashes;
+    private final AvailableDigestAlgorithms hashType;
+    private final String wordsUrl;
+    private final boolean pause;
 
     public GeneralState(ArrayList<String> hashes, boolean pause, AvailableDigestAlgorithms hashType, String wordsUrl) {
         this.hashes = hashes;
@@ -23,10 +23,6 @@ public class GeneralState implements Serializable {
 
     public ArrayList<String> getHashes() {
         return hashes;
-    }
-
-    public boolean isPause() {
-        return pause;
     }
 
     public AvailableDigestAlgorithms getHashType() {

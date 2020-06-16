@@ -1,15 +1,15 @@
-package edu.ufp.inf.sd.dhm.client;
+package edu.ufp.inf.sd.HashFinder.client;
 
 import java.io.Serializable;
 
 /**
- * Used to make the authentication
+ * Classe do utilizador
  */
-public class Guest implements Serializable {
+public class User implements Serializable {
     private final String username;
     private final String password;
 
-    public Guest(String username, String password) {
+    public User(String username, String password) {
         this.username = username;
         this.password = password;
     }

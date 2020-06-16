@@ -1,27 +1,20 @@
-package edu.ufp.inf.sd.dhm.server;
-
-import edu.ufp.inf.sd.dhm.client.Worker;
+package edu.ufp.inf.sd.HashFinder.server;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 
 public class User implements Serializable {
     private final String username;
-    private int coins;
+    private final int coins;
     private int amountOfWorkers;
 
     public User(String username) {
         this.username = username;
         this.coins = 0;
-        amountOfWorkers =0;
+        amountOfWorkers = 0;
     }
 
     public String getUsername() {
         return username;
-    }
-
-    public void setCoins(int quantity) {
-        this.coins = quantity;
     }
 
     public int getCoins() {
@@ -32,7 +25,7 @@ public class User implements Serializable {
         return this.amountOfWorkers;
     }
 
-    public void addWorker(){
-        this.amountOfWorkers ++;
+    public void addWorker() {
+        this.amountOfWorkers++;
     }
 }

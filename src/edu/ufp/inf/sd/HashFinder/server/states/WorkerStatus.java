@@ -1,4 +1,4 @@
-package edu.ufp.inf.sd.dhm.server.states;
+package edu.ufp.inf.sd.HashFinder.server.states;
 
 public enum WorkerStatus {
     NEED_HASHES,

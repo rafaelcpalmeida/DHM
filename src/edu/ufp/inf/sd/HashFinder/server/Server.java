@@ -1,20 +1,16 @@
-package edu.ufp.inf.sd.dhm.server;
+package edu.ufp.inf.sd.HashFinder.server;
 
-import edu.ufp.inf.sd.dhm.client.Worker;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Server {
-    //make run-server PACKAGE_NAME=edu.ufp.inf.sd.dhm.server.Server SERVICE_NAME=DhmService
+    //make run-server PACKAGE_NAME=edu.ufp.inf.sd.HashFinder.server.Server SERVICE_NAME=HashFinderService
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
     private SetupContextRMI contextRMI;
-
-    private AuthFactoryRI authFactoryRI;
 
     public static void main(String[] args) {
 
@@ -34,7 +30,7 @@ public class Server {
             //Bind service on rmiregistry and wait for calls
             if (registry != null) {
                 //============ Create Servant ============
-                authFactoryRI= new AuthFactoryImpl();
+                AuthFactoryRI authFactoryRI = new AuthFactoryImpl();
 
                 //Get service url (including servicename)
                 String serviceUrl = contextRMI.getServicesUrl(0);
@@ -45,20 +41,18 @@ public class Server {
                 registry.rebind(serviceUrl, authFactoryRI);
                 LOGGER.info("service bound and running. :)");
             } else {
-                //LOGGER.info("CalculadorServer - Constructor(): create registry on port 1099");
                 LOGGER.info("registry not bound (check IPs). :(");
-                //registry = LocateRegistry.createRegistry(1099);
             }
         } catch (RemoteException ex) {
             LOGGER.severe(ex.toString());
         }
     }
 
-    public Server(String[] args){
+    public Server(String[] args) {
         try {
-            String registryIP   = args[0];
+            String registryIP = args[0];
             String registryPort = args[1];
-            String serviceName  = args[2];
+            String serviceName = args[2];
             contextRMI = new SetupContextRMI(this.getClass(), registryIP, registryPort, new String[]{serviceName});
         } catch (RemoteException e) {
             LOGGER.severe(e.toString());

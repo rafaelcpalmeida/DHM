@@ -1,7 +1,6 @@
-package edu.ufp.inf.sd.dhm.server.states;
+package edu.ufp.inf.sd.HashFinder.server.states;
 
-import edu.ufp.inf.sd.dhm.server.StringGroup;
-import edu.ufp.inf.sd.dhm.server.TaskGroup;
+import edu.ufp.inf.sd.HashFinder.server.StringGroup;
 
 import java.io.Serializable;
 
@@ -11,7 +10,7 @@ import java.io.Serializable;
 public class TaskState implements Serializable {
     private final StringGroup stringGroup;
 
-    public TaskState(StringGroup stringGroup){
+    public TaskState(StringGroup stringGroup) {
         this.stringGroup = stringGroup;
     }
 

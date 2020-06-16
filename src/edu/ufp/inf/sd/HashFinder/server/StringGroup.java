@@ -1,4 +1,4 @@
-package edu.ufp.inf.sd.dhm.server;
+package edu.ufp.inf.sd.HashFinder.server;
 
 import java.io.Serializable;
 
@@ -7,8 +7,8 @@ import java.io.Serializable;
  * For workers to know from where to where they need to hash.
  */
 public class StringGroup implements Serializable {
-    private int ceiling;
-    private int delta;
+    private final int ceiling;
+    private final int delta;
 
     public StringGroup(int ceiling, int delta) {
         this.ceiling = ceiling;

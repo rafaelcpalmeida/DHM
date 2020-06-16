@@ -1,4 +1,4 @@
-package edu.ufp.inf.sd.dhm.server;
+package edu.ufp.inf.sd.HashFinder.server;
 
 public enum AvailableDigestAlgorithms {
     MD2,

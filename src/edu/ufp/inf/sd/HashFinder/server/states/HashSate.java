@@ -1,9 +1,8 @@
-package edu.ufp.inf.sd.dhm.server.states;
+package edu.ufp.inf.sd.HashFinder.server.states;
 
-import edu.ufp.inf.sd.dhm.server.StringGroup;
+import edu.ufp.inf.sd.HashFinder.server.StringGroup;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 
 /**
  * Worker ---> Task
@@ -16,7 +15,7 @@ public class HashSate implements Serializable {
     String hash;      // String w/ the match
     String word;      // String w/ the word found
 
-    public HashSate(WorkerStatus workerStatus, StringGroup original, StringGroup pending, String hash,int workerId, String word) {
+    public HashSate(WorkerStatus workerStatus, StringGroup original, StringGroup pending, String hash, int workerId, String word) {
         this.status = workerStatus;
         this.original = original;
         this.pending = pending;
@@ -26,34 +25,16 @@ public class HashSate implements Serializable {
     }
 
 
-
-    public HashSate(WorkerStatus workerStatus, int workerId) {
-        this.status = workerStatus;
-        this.workerId = workerId;
-    }
-
     public WorkerStatus getStatus() {
         return status;
-    }
-
-    public StringGroup getOriginal() {
-        return original;
-    }
-
-    public StringGroup getPending() {
-        return pending;
     }
 
     public String getHash() {
         return hash;
     }
 
-    public String getWord(){
+    public String getWord() {
         return word;
-    }
-
-    public Integer getWorkerId() {
-        return this.workerId;
     }
 
     @Override
