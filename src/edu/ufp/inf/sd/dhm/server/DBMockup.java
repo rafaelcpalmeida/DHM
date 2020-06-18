@@ -2,8 +2,10 @@ package edu.ufp.inf.sd.dhm.server;
 
 import edu.ufp.inf.sd.dhm.client.Guest;
 import edu.ufp.inf.sd.dhm.client.Worker;
+import edu.ufp.inf.sd.dhm.client.WorkerRI;
+import edu.ufp.inf.sd.dhm.server.exceptions.TaskOwnerRunOutOfMoney;
 
-import java.io.Serializable;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -18,6 +20,8 @@ public class DBMockup {
     private HashMap<User, String> users;             // User -> passw
     private HashMap<User, TaskGroup> taskgroups;     // User -> taskgroup
     private HashMap<Task, ArrayList<Worker>> tasks;             // Task -> user.worker
+    private HashMap<User,Integer> userCoins;
+    private HashMap<User, ArrayList<WorkerRI>> userWorkers;
 
     /**
      * constructor , private , only getInstance()
@@ -28,6 +32,8 @@ public class DBMockup {
         users = new HashMap<>();
         taskgroups = new HashMap<User, TaskGroup>();
         tasks = new HashMap<Task, ArrayList<Worker>>();
+        userWorkers = new HashMap<User,ArrayList<WorkerRI>>();
+        userCoins = new HashMap<>();
     }
 
     /**
@@ -45,7 +51,10 @@ public class DBMockup {
      * @param passwd password
      */
     public synchronized void insert(User user, String passwd) {
-        if(!this.users.containsKey(user)) this.users.put(user,passwd);
+        if(!this.users.containsKey(user)){
+            this.users.put(user,passwd);
+            this.userCoins.put(user,0); // adds 0 coins to user
+        }
     }
 
     /**
@@ -89,8 +98,12 @@ public class DBMockup {
     public void giveMoney(User user, int quantity){
         if(this.users.containsKey(user)){
             // The user exists
-            user.setCoins(user.getCoins() + quantity);
+            this.setUserCoins(user,this.getCoins(user) + quantity);
         }
+    }
+
+    public void setUserCoins(User user,int value){
+        this.userCoins.put(user,value);
     }
 
     public boolean exists(Guest guest){
@@ -127,6 +140,55 @@ public class DBMockup {
 
     public void removeSession(User user){
         this.sessions.remove(user);
+    }
+
+    public void takeMoney(User user, int amount) throws TaskOwnerRunOutOfMoney {
+        if(this.users.containsKey(user)){
+            // The user exists
+            int newBalance = this.getCoins(user) - amount;
+            if (newBalance < 0) {
+                // owner has no more money to spent
+                throw new TaskOwnerRunOutOfMoney();
+            }
+            this.setUserCoins(user,newBalance);
+        }
+    }
+
+    /**
+     * Returns coins from a User
+     */
+    public int getCoins(User user){
+        return this.userCoins.get(user);
+    }
+
+    /**
+     * Adds a worker to the arraylist of that user's worker
+     * @param workerRI worker stub
+     * @param user 's worker
+     */
+    public void insert(WorkerRI workerRI, User user){
+        if(!this.userWorkers.containsKey(user)){
+            // if the user has no Workers yet
+            ArrayList<WorkerRI> newArray = new ArrayList<>();
+            newArray.add(workerRI);
+            this.userWorkers.put(user,newArray);      // create key and new ArrayList
+            return;
+        }
+        this.userWorkers.get(user).add(workerRI);
+    }
+
+    public WorkerRI getWorkerStub(String username, int id) throws RemoteException {
+        User user = this.getUser(username);
+        ArrayList<WorkerRI> workers = this.userWorkers.get(user);
+        for(WorkerRI workerRI: workers){
+            if(workerRI.getId() == id) return workerRI;
+        }
+        return null;
+    }
+
+
+    public TaskGroup getTaskGroup(User user){
+        return this.taskgroups.get(user);
     }
 
 

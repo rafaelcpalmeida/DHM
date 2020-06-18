@@ -10,19 +10,21 @@ import java.util.ArrayList;
  */
 public class HashSate implements Serializable {
     int workerId;
+    String ownerName;
     WorkerStatus status;
     StringGroup original;           // StringGroup originally attached to this worker
     StringGroup pending;            // StringGroup pending to mine ( not mined yet )
     String hash;      // String w/ the match
     String word;      // String w/ the word found
 
-    public HashSate(WorkerStatus workerStatus, StringGroup original, StringGroup pending, String hash,int workerId, String word) {
+    public HashSate(WorkerStatus workerStatus, StringGroup original, StringGroup pending, String hash,int workerId, String word, String ownerName) {
         this.status = workerStatus;
         this.original = original;
         this.pending = pending;
         this.hash = hash;
         this.workerId = workerId;
         this.word = word;
+        this.ownerName = ownerName;
     }
 
 
@@ -66,5 +68,9 @@ public class HashSate implements Serializable {
                 ", hash='" + hash + '\'' +
                 ", word='" + word + '\'' +
                 '}';
+    }
+
+    public String getOwnerName() {
+        return ownerName;
     }
 }

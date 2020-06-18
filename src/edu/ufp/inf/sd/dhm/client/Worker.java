@@ -43,6 +43,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     private WorkerThread workerThread;
     private Thread workingThread;
     private boolean stop = false;
+    private boolean pause = false;
 
 
     /**
@@ -148,7 +149,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         WorkerStatus workerStatus = WorkerStatus.MATCH;
         if(done) workerStatus = WorkerStatus.DONE;
         if(done && match) workerStatus = WorkerStatus.DONE_AND_MATCH;
-        HashSate hashSate = new HashSate(workerStatus, this.original, pending, hash,this.id,word);
+        HashSate hashSate = new HashSate(workerStatus, this.original, pending, hash,this.id,word,this.owner.getUsername());
         this.publish(hashSate);
     }
 
@@ -158,7 +159,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
      */
     public void doneWithStringGroup(boolean match, long deliveryTagThread){
         this.sendHashState(match,true,"","");
-        LOGGER.info("Sending ack and hash state w/ deliveryTag " + deliveryTagThread);
+        //LOGGER.info("Sending ack and hash state w/ deliveryTag " + deliveryTagThread);
         try {
             this.recvDirectChannel.basicAck(deliveryTagThread,false);
         } catch (IOException e) {
@@ -167,7 +168,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     }
 
     public void match(String word, String hash, long deliveryTagThread){
-        LOGGER.info("Sending information that we found a match!");
+        //LOGGER.info("Sending information that we found a match!");
         this.sendHashState(true,false,word,hash);
     }
 
@@ -186,12 +187,25 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     private void listenToGeneral() {
         try {
             DeliverCallback listen = (consumerTag, delivery) -> {
-                LOGGER.info("[RECV][W#" + this.id + "][" + this.generalQueue + "]" + " Received General STATE'");
+                //LOGGER.info("[RECV][W#" + this.id + "][" + this.generalQueue + "]" + " Received General STATE'");
                 byte[] bytes = delivery.getBody();
                 GeneralState generalState = (GeneralState) SerializationUtils.deserialize(bytes);
-                LOGGER.info(generalState.toString());
+                //LOGGER.info(generalState.toString());
+                if(generalState.isResume()){
+                    //resuming working after being paused
+                    LOGGER.info("Going to resume the work !!!");
+                    this.pause=false;
+                    //this.workingThread.notify();
+                    //Thread.currentThread().interrupt();
+                    return;
+                }
                 if(generalState.isPause()) {
-                    // TODO STOP WORKING!!!!
+                    LOGGER.info("Paused state received, going to stop work");
+                    this.pause = true;
+                    //this.workingThread.wait();
+                    //Thread.currentThread().interrupt();
+                    return;
+
                 }
                 if(generalState.getHashes() == null){
                     // No more hashes to be found = no more work to do
@@ -268,6 +282,21 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         return this.generalQueue;
     }
 
+    /**
+     * Method to print a message sent by the Task ( server )
+     * @param message sent by the Task
+     */
+    @Override
+    public void printServerMessage(String message) throws RemoteException {
+        LOGGER.info("[SERVER MESSAGE] " + message);
+    }
+
+    @Override
+    public String getOwnerName() throws RemoteException {
+        return this.owner.getUsername();
+    }
+
+
     public int getId() throws RemoteException {
         return id;
     }
@@ -290,5 +319,9 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
 
     public boolean isStop() {
         return stop;
+    }
+
+    public boolean isPause() {
+        return pause;
     }
 }

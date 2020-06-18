@@ -140,6 +140,10 @@ public class Client {
                     "\n2 - create task group " +
                     "\n3 - join task group " +
                     "\n4 - add worker to task " +
+                    "\n5 - how much coins do I have?" +
+                    "\n6 - buy coins w/ bitcoins " +
+                    "\n7 - pause task " +
+                    "\n8 - resume task " +
                     "\n> ");
             int option1 = scanner.nextInt();
             scanner.nextLine();
@@ -161,6 +165,21 @@ public class Client {
                     String taskOwner = scanner.nextLine();
                     scanner.nextLine();
                     this.createWorker(authSessionRI,taskOwner);
+                    break;
+                case 5:
+                    LOGGER.info(authSessionRI.getCoins());
+                    break;
+                case 6:
+                    LOGGER.info("How much do u wanna buy? only bitcoin...\n> ");
+                    String amountToBuy = scanner.nextLine();
+                    scanner.nextLine();
+                    authSessionRI.buyCoins(Integer.parseInt(amountToBuy));
+                    break;
+                case 7:
+                    LOGGER.info(authSessionRI.pauseTask());
+                    break;
+                case 8:
+                    LOGGER.info(authSessionRI.resumeTask());
                     break;
                 default:
                     LOGGER.info("Wrong option ... ");

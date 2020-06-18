@@ -30,8 +30,22 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      * @param amount of coins being purchased
      */
     public void buyCoins(int amount){
-
+        LOGGER.info("User " + this.user.getUsername() + " bought " + amount + " coins!");
+        this.db.giveMoney(this.user,amount);
     }
+
+    @Override
+    public String pauseTask() throws RemoteException {
+        TaskGroup taskGroup = this.db.getTaskGroup(this.user);
+        return taskGroup.getTask().pauseAllTask();
+    }
+
+    @Override
+    public String resumeTask() throws RemoteException {
+        TaskGroup taskGroup = this.db.getTaskGroup(this.user);
+        return taskGroup.getTask().resumeAllTask();
+    }
+
     /**
      * User wants to join a task group
      * @param username the user we want to join the taskgroup
@@ -134,6 +148,13 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     public User getUserFromName(String username) throws RemoteException {
         return this.db.getUser(username);
     }
+
+    @Override
+    public String getCoins() throws RemoteException {
+        return "You currently have " + this.db.getCoins(this.user) + " coins.";
+    }
+
+
 
     public User getUser(){
         return this.user;

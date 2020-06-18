@@ -13,12 +13,14 @@ public class GeneralState implements Serializable {
     private AvailableDigestAlgorithms hashType;
     private String wordsUrl;
     private boolean pause;
+    private boolean resume;
 
-    public GeneralState(ArrayList<String> hashes, boolean pause, AvailableDigestAlgorithms hashType, String wordsUrl) {
+    public GeneralState(ArrayList<String> hashes, boolean pause, AvailableDigestAlgorithms hashType, String wordsUrl, boolean resume) {
         this.hashes = hashes;
         this.pause = pause;
         this.hashType = hashType;
         this.wordsUrl = wordsUrl;
+        this.resume = resume;
     }
 
     public ArrayList<String> getHashes() {
@@ -27,6 +29,10 @@ public class GeneralState implements Serializable {
 
     public boolean isPause() {
         return pause;
+    }
+
+    public boolean isResume() {
+        return resume;
     }
 
     public AvailableDigestAlgorithms getHashType() {

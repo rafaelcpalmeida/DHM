@@ -4,6 +4,7 @@ import com.rabbitmq.client.*;
 import edu.ufp.inf.sd.dhm.Rabbit;
 import edu.ufp.inf.sd.dhm.client.Worker;
 import edu.ufp.inf.sd.dhm.client.WorkerRI;
+import edu.ufp.inf.sd.dhm.server.exceptions.TaskOwnerRunOutOfMoney;
 import edu.ufp.inf.sd.dhm.server.states.GeneralState;
 import edu.ufp.inf.sd.dhm.server.states.HashSate;
 import edu.ufp.inf.sd.dhm.server.states.TaskState;
@@ -36,6 +37,7 @@ public class Task {
     private Channel sendGeralChannel; // channel used to send info to all workers
     private String exchangeName;
     private DBMockup db;
+    private boolean paused;
 
     /**
      * @param hashType  ex. MD5 , SHA1 , etc ...
@@ -162,12 +164,12 @@ public class Task {
     }
 
     /**
-     * Adds a worker to workers HashMap and
+     * Adds a worker to DB and calls the method to start
      * @param worker added
      */
     public void addWorker(WorkerRI worker) throws RemoteException {
         LOGGER.info(" Adding worker to queue ...");
-        this.workers.put(worker.getId(),worker);
+        this.db.insert(worker,this.db.getUser(worker.getOwnerName()));
         this.startWorker(worker);
     }
 
@@ -178,7 +180,7 @@ public class Task {
     private void startWorker(WorkerRI worker) throws RemoteException {
         worker.start();
         String workerQueue = worker.getGeneralQueue();
-        this.publishToQueue(new GeneralState(this.digests,false,this.hashType,this.url),workerQueue);
+        this.publishToQueue(new GeneralState(this.digests,false,this.hashType,this.url,false),workerQueue);
     }
     /**
      * Create a callback function that listens to the task queue
@@ -197,12 +199,16 @@ public class Task {
                     case NEED_HASHES:
                         break;
                     case DONE:
-                        //TODO DONE!
                         //LOGGER.info("received a dont w/ string group  ");
+                        LOGGER.info("Received a DONE state ...");
+                        this.giveCoins(1,hashSate.getOwnerName());
+                        this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 1 coin!");
                         break;
                     case MATCH:
-                        LOGGER.info("received a match for " + hashSate.getHash() + "w/ word " + hashSate.getWord());
+                        LOGGER.info("Received a MATCH for " + hashSate.getHash() + "w/ word " + hashSate.getWord());
                         this.updateTaskMatches(hashSate.getWord(),hashSate.getHash());
+                        this.giveCoins(10,hashSate.getOwnerName());
+                        this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 10 coins!");
                         break;
                     case DONE_AND_MATCH:
                         // TODO DONE_AND_MATCH
@@ -221,6 +227,102 @@ public class Task {
     }
 
     /**
+     * Sends a message to a worker
+     * @param workerId worker we want to send
+     * @param ownerName user
+     * @param message we want to send
+     */
+    private void sendMessage(int workerId, String ownerName, String message) {
+        try {
+            WorkerRI workerRI = this.db.getWorkerStub(ownerName,workerId);
+            if(workerRI != null){
+                workerRI.printServerMessage(message);
+                return;
+            }
+            LOGGER.warning("Couldn't send a message to worker because DB returned null to WorkerRI stub.");
+        } catch (RemoteException e) {
+            LOGGER.severe("Couldn't send a message to worker due to RemoteException getting the worker's stub.");
+        }
+
+    }
+
+    /**
+     * Gives coins a Worker's user and removes from the TaskGroup
+     * owner
+     * @param amount given to the user
+     * @param username who we want to give
+     */
+    private void giveCoins(int amount, String username) {
+        User user = this.db.getUser(username);
+        User taskOwner = this.taskGroup.getOwner();
+        if(user != null){
+            this.db.giveMoney(user,amount);
+            LOGGER.info("Giving " + amount + " coins to " + username + " and removing from " + taskOwner.getUsername() + " balance!");
+            try {
+                this.removeCoins(amount,taskOwner);
+            } catch (TaskOwnerRunOutOfMoney taskOwnerRunOutOfMoney) {
+                LOGGER.warning("Owner run out of coins!!! Pausing task !!");
+                this.pauseTask();
+            }
+            return;
+        }
+        LOGGER.warning("Username was not found to give coins!");
+    }
+
+    /**
+     * Check if can pause task, if afirmative
+     * then pauses
+     * @return Message of the operation
+     */
+    public String pauseAllTask(){
+        if(!this.paused){
+            // not paused yet
+            this.pauseTask();
+            return "Task has been paused!";
+        }
+        return "Task is paused already u dumb";
+    }
+
+    /**
+     * Check if can pause task, if afirmative
+     * then pauses
+     * @return Message of the operation
+     */
+    public String resumeAllTask(){
+        if(this.paused){
+            // not paused yet
+            this.resumeTask();
+            return "Task has been resumed!";
+        }
+        return "Task is already running :O";
+    }
+
+    /**
+     * Pauses task
+     */
+    private void pauseTask() {
+        GeneralState generalState = new GeneralState(null,true,null,"",false);
+        this.publishToAllWorkers(generalState);
+        this.paused = true;
+    }
+
+    private void resumeTask(){
+        GeneralState generalState = new GeneralState(null,false,null,"",true);
+        this.publishToAllWorkers(generalState);
+        this.paused = false;
+    }
+
+
+    /**
+     * Remove money from a user
+     * @param amount beeing taken
+     * @param user we want to take money of
+     */
+    private void removeCoins(int amount, User user) throws TaskOwnerRunOutOfMoney {
+        this.db.takeMoney(user,amount);
+    }
+
+    /**
      * Updates all the arraylists when a new match is received
      * and notifies all workers
      * @param digestFound hash found
@@ -229,7 +331,7 @@ public class Task {
     private void updateTaskMatches(String wordFound, String digestFound) throws IOException {
         this.digests.remove(digestFound);
         this.wordsFound.put(digestFound,wordFound);
-        GeneralState generalState = new GeneralState(this.digests,false,this.hashType,this.url);
+        GeneralState generalState = new GeneralState(this.digests,false,this.hashType,this.url,false);
         if(this.digests.isEmpty()){
             // All hashes found!
             this.endTask();
@@ -244,7 +346,7 @@ public class Task {
      */
     private void endTask() throws IOException {
         LOGGER.info("All matches found , stop!");
-        GeneralState generalState = new GeneralState(null,false,null,"");
+        GeneralState generalState = new GeneralState(null,false,null,"",false);
         this.publishToAllWorkers(generalState);
         this.sendQueueChannel.queueDelete(this.sendQueue);
         this.recvChannel.queueDelete(this.recvQueue);

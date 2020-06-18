@@ -18,4 +18,8 @@ public interface AuthSessionRI extends Remote {
     public User getUser() throws RemoteException;
     public void addWorkerToTask(String taskOwner, WorkerRI worker) throws RemoteException;
     public User getUserFromName(String username) throws RemoteException;
+    public String getCoins() throws RemoteException;
+    public void buyCoins(int amount) throws RemoteException;
+    public String pauseTask() throws RemoteException;
+    public String resumeTask() throws RemoteException;
 }
