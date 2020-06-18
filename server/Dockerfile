@@ -7,7 +7,7 @@ RUN apt update && \
     apt install -y git && \
     go get github.com/cespare/reflex
 
-FROM openjdk:8u242-jdk-buster
+FROM openjdk:14-slim-buster
 
 WORKDIR /app
 
