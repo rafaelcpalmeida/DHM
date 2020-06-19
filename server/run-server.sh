@@ -30,7 +30,10 @@ do
 	JAR_TO_COMPILE+="$JAR:"
 done
 
-javac -cp .:$JAR_TO_COMPILE:/built-classes $(find ./* | grep .java)
+export JFX_HOME="/usr/share/openjfx/lib/"
+cp /usr/lib/x86_64-linux-gnu/jni/* /usr/lib/
+JFX_MODULES="javafx.controls,javafx.graphics"
+javac --module-path $JFX_HOME --add-modules $JFX_MODULES -cp .:$JAR_TO_COMPILE:/built-classes $(find ./* | grep .java)
 
 echo ""
 echo "***************************"
@@ -38,7 +41,7 @@ echo "*  Running application... *"
 echo "***************************"
 echo ""
 
-CMD="java -cp .:$JAR_TO_COMPILE:/built-classes "
+CMD="java --module-path $JFX_HOME --add-modules $JFX_MODULES -cp .:$JAR_TO_COMPILE:/built-classes "
 
 if [[ "${JAR_LOCATION}" != "empty" ]] && [[ "${JAR_NAME}" != "empty" ]]; then
     if [ "${JAR_LOCATION}" == "file" ]; then
