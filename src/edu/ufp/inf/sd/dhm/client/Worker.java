@@ -44,6 +44,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     private Thread workingThread;
     private boolean stop = false;
     private boolean pause = false;
+    private Object lock = new Object();
 
 
     /**
@@ -121,7 +122,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
                 this.original = taskState.getStringGroup();
                 //LOGGER.info("I'm currently on thread + " +  Thread.currentThread().getName());
                 //LOGGER.info("This is this thread delivery tag " + delivery.getEnvelope().getDeliveryTag());
-                LOGGER.info(taskState.toString());
+                //LOGGER.info(taskState.toString());
                 this.workerThread = new WorkerThread(taskState,this);
                 this.workerThread.setDeliveryTag(delivery.getEnvelope().getDeliveryTag());
                 this.workerThread.run();
@@ -195,17 +196,15 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
                     //resuming working after being paused
                     LOGGER.info("Going to resume the work !!!");
                     this.pause=false;
-                    //this.workingThread.notify();
-                    //Thread.currentThread().interrupt();
+                    synchronized(lock) {
+                        lock.notifyAll();
+                    }
                     return;
                 }
                 if(generalState.isPause()) {
                     LOGGER.info("Paused state received, going to stop work");
                     this.pause = true;
-                    //this.workingThread.wait();
-                    //Thread.currentThread().interrupt();
                     return;
-
                 }
                 if(generalState.getHashes() == null){
                     // No more hashes to be found = no more work to do
@@ -267,7 +266,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         try {
             byte[] hashStateBytes =  SerializationUtils.serialize(hashSate);
             this.sendChannel.basicPublish("", this.sendQueue, null, hashStateBytes);
-            LOGGER.info("[SEND][W#" + this.id + "]" + " Sent hashing state'");
+            //LOGGER.info("[SEND][W#" + this.id + "]" + " Sent hashing state'");
         } catch (Exception e) {
             LOGGER.severe("[ERROR] Exception in worker.publish()");
             LOGGER.severe(e.getMessage());
@@ -323,5 +322,9 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
 
     public boolean isPause() {
         return pause;
+    }
+
+    public Object getLock() {
+        return lock;
     }
 }

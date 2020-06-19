@@ -46,6 +46,21 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         return taskGroup.getTask().resumeAllTask();
     }
 
+    @Override
+    public String deleteTaskGroup() throws RemoteException {
+        TaskGroup taskGroup = this.db.getTaskGroup(this.user);
+        if(taskGroup != null){
+            try {
+                taskGroup.getTask().endTask();
+            } catch (IOException e) {
+                LOGGER.warning(e.toString());
+            }
+            this.db.deleteTaskGroup(this.user);
+            return "TaskGroup removed!";
+        }
+        return "TaskGroup not found!";
+    }
+
     /**
      * User wants to join a task group
      * @param username the user we want to join the taskgroup

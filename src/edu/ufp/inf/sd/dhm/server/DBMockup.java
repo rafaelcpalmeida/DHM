@@ -45,7 +45,6 @@ public class DBMockup {
         return dbMockup;
     }
 
-
     /**
      * @param user being added to users
      * @param passwd password
@@ -189,6 +188,10 @@ public class DBMockup {
 
     public TaskGroup getTaskGroup(User user){
         return this.taskgroups.get(user);
+    }
+
+    public void deleteTaskGroup(User user) {
+        this.taskgroups.remove(user);
     }
 
 

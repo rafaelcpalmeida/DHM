@@ -22,4 +22,5 @@ public interface AuthSessionRI extends Remote {
     public void buyCoins(int amount) throws RemoteException;
     public String pauseTask() throws RemoteException;
     public String resumeTask() throws RemoteException;
+    public String deleteTaskGroup() throws RemoteException;
 }

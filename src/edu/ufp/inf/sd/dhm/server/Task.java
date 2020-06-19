@@ -180,7 +180,7 @@ public class Task {
     private void startWorker(WorkerRI worker) throws RemoteException {
         worker.start();
         String workerQueue = worker.getGeneralQueue();
-        this.publishToQueue(new GeneralState(this.digests,false,this.hashType,this.url,false),workerQueue);
+        this.publishToQueue(new GeneralState(this.digests,this.paused,this.hashType,this.url,false),workerQueue);
     }
     /**
      * Create a callback function that listens to the task queue
@@ -344,8 +344,8 @@ public class Task {
     /**
      * Send to all workers a GeneralState and deletes the channel
      */
-    private void endTask() throws IOException {
-        LOGGER.info("All matches found , stop!");
+    protected void endTask() throws IOException {
+        LOGGER.info("Ending task!!");
         GeneralState generalState = new GeneralState(null,false,null,"",false);
         this.publishToAllWorkers(generalState);
         this.sendQueueChannel.queueDelete(this.sendQueue);

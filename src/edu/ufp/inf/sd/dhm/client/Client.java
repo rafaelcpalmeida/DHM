@@ -61,6 +61,9 @@ public class Client {
             if (authSessionRI != null) {
                 LOGGER.info("Session started !");
                 this.chooseOption(authSessionRI);
+            }else {
+                LOGGER.info("Credentials invalid");
+                this.playService();
             }
             LOGGER.info("Going to finish ...");
         } catch (RemoteException ex) {
@@ -144,6 +147,7 @@ public class Client {
                     "\n6 - buy coins w/ bitcoins " +
                     "\n7 - pause task " +
                     "\n8 - resume task " +
+                    "\n9 - delete task group " +
                     "\n> ");
             int option1 = scanner.nextInt();
             scanner.nextLine();
@@ -180,6 +184,9 @@ public class Client {
                     break;
                 case 8:
                     LOGGER.info(authSessionRI.resumeTask());
+                    break;
+                case 9:
+                    LOGGER.info(authSessionRI.deleteTaskGroup());
                     break;
                 default:
                     LOGGER.info("Wrong option ... ");
