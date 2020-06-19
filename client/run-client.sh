@@ -28,7 +28,10 @@ do
 	JAR_TO_COMPILE+="$JAR:"
 done
 
-javac -cp .:$JAR_TO_COMPILE:/built-classes $(find ./* | grep .java)
+export JFX_HOME="/usr/share/openjfx/lib/"
+cp /usr/lib/x86_64-linux-gnu/jni/* /usr/lib/
+JFX_MODULES="javafx.controls,javafx.graphics"
+javac --module-path $JFX_HOME --add-modules $JFX_MODULES -cp .:$JAR_TO_COMPILE:/built-classes $(find ./* | grep .java)
 
 echo ""
 echo "***************************"
@@ -38,7 +41,7 @@ echo ""
 
 packageName=$(echo ${PACKAGE_NAME} | sed -E 's/(.[a-zA-Z0-9_]+)$//g')
 
-CMD="java -cp .:$JAR_TO_COMPILE:/built-classes "
+CMD="java --module-path $JFX_HOME --add-modules $JFX_MODULES -cp .:$JAR_TO_COMPILE:/built-classes "
 
 if [[ "${JAR_LOCATION}" != "empty" ]] && [[ "${JAR_NAME}" != "empty" ]]; then
     if [ "${JAR_LOCATION}" == "file" ]; then
@@ -50,12 +53,8 @@ if [[ "${JAR_LOCATION}" != "empty" ]] && [[ "${JAR_NAME}" != "empty" ]]; then
     fi
 fi
 
-SERVER="rmi_run_server"
+SERVER=${SERVER}
 PORT=1099
-if [[ "${SERVICE_NAME}" == "rabbitmq" ]]; then
-  SERVER="rmi_rabbit_mq_server"
-  PORT=4369
-fi
 
 attempts=0
 while ! nc -zvw3 $SERVER $PORT; do
@@ -70,6 +69,6 @@ done
 
 CMD+="-Djava.security.policy=file:////app/security-policies/serverAllPermition.policy "
 CMD+="-D$packageName.servicename=${SERVICE_NAME} "
-CMD+="${PACKAGE_NAME} rmi_run_server 1099 ${SERVICE_NAME}"
+CMD+="${PACKAGE_NAME} $SERVER 1099 ${SERVICE_NAME}"
 
 $CMD

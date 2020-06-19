@@ -15,4 +15,4 @@ COPY --from=0 /go/bin/reflex /usr/local/bin/reflex
 
 RUN chmod +x /usr/local/bin/reflex
 
-RUN apt update && apt install -y netcat
+RUN apt update && apt install --no-install-recommends -y xorg libgl1-mesa-glx netcat openjfx && rm -rf /var/lib/apt/lists/*

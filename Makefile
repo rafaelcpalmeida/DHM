@@ -34,6 +34,7 @@ endif
 
 JAR_LOCATION = "empty"
 JAR_NAME = "empty"
+SERVER != docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' rmi_run_server
 .PHONY: run-client
 run-client:	### Runs RMI client
 ifndef PACKAGE_NAME
@@ -43,4 +44,4 @@ ifndef SERVICE_NAME
 	$(error Missing SERVICE_NAME variable. Usage: make run-server JAR_LOCATION (optional) JAR_NAME (optional) PACKAGE_NAME SERVICE_NAME)
 endif
 
-	JAR_LOCATION=$(JAR_LOCATION) JAR_NAME=$(JAR_NAME) PACKAGE_NAME=$(PACKAGE_NAME) SERVICE_NAME=$(SERVICE_NAME) docker-compose run client
+	JAR_LOCATION=$(JAR_LOCATION) JAR_NAME=$(JAR_NAME) PACKAGE_NAME=$(PACKAGE_NAME) SERVICE_NAME=$(SERVICE_NAME) DISPLAY=:0 SERVER=$(SERVER) docker-compose run client

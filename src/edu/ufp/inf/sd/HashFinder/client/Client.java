@@ -13,6 +13,16 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.Scene;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
 public class Client {
     private static final Logger LOGGER;
 
@@ -108,6 +118,8 @@ public class Client {
     }
 
     public static void main(String[] args) {
+        Thread thread = new Thread(() -> { Application.launch(GUI.class, args); });
+        thread.start();
         if (args != null && args.length < 3) {
             System.exit(-1);
         } else {
@@ -166,5 +178,43 @@ public class Client {
     private void createWorker(AuthSessionRI authSessionRI, String taskOwner) throws IOException, TimeoutException {
         Worker worker = new Worker(authSessionRI.getUser().getAmountOfWorkers() + 1, authSessionRI.getUser(), taskOwner);
         authSessionRI.addWorkerToTask(taskOwner, worker);
+    }
+
+    public static class GUI extends Application {
+        @Override
+        public void start(Stage primaryStage) {
+            primaryStage.setTitle("Menu");
+            Button btn = new Button();
+            btn.setText("Entrar");
+            btn.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    System.out.println("Thank you sensei!");
+                }
+            });
+            Button btn2 = new Button();
+            btn2.setText("Registar");
+            btn2.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    System.out.println("Thank you sensei!");
+                }
+            });
+            Button btn3 = new Button();
+            btn3.setText("Chuapa-mos Capela <3");
+            btn3.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    System.out.println("Thank you sensei!");
+                }
+            });
+            StackPane root = new StackPane();
+            VBox vbox = new VBox(5);
+            vbox.setAlignment(Pos.CENTER);
+            vbox.getChildren().addAll(btn, btn2, btn3);
+            root.getChildren().add(vbox);
+            primaryStage.setScene(new Scene(root, 300, 250));
+            primaryStage.show();
+        }
     }
 }

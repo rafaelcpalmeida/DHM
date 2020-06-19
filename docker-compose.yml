@@ -15,17 +15,14 @@ services:
     entrypoint: /app/run-client.sh
     container_name: rmi_run_client
     environment:
+      DISPLAY: ${DISPLAY}
       JAR_LOCATION: ${JAR_LOCATION}
       JAR_NAME: ${JAR_NAME}
       PACKAGE_NAME: ${PACKAGE_NAME}
       SERVICE_NAME: ${SERVICE_NAME}
+      SERVER: ${SERVER}
+    network_mode: host
     working_dir: /app
-    networks:
-      local_network:
-        aliases:
-          - client
-          - rmi_client
-          - rmi_run_client
     volumes:
       - ./src:/app/src
       - ./bin:/app/bin
