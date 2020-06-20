@@ -8,13 +8,14 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Server {
     //make run-server PACKAGE_NAME=edu.ufp.inf.sd.dhm.server.Server SERVICE_NAME=DhmService
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
-
+    private int id;
     private SetupContextRMI contextRMI;
 
     private AuthFactoryRI authFactoryRI;
@@ -31,22 +32,55 @@ public class Server {
             if(srv.isBackupServer()){
                 // If this is a Backup server
                 srv.serverRI = (ServerRI) srv.lookupService();
-            }else {
-                // Main server
                 if (srv.serverRI == null) {
                     LOGGER.severe("Main server is dead :X Going to start backup server!");
                     srv.rebindBackupService();
                 }
-
                 try{
                     srv.backupServerRI = (ServerRI) new ServerImpl(false,srv);
                 } catch (RemoteException e) {
                     LOGGER.severe(e.toString());
                 }
+                srv.waiting();
+            }else {
+                // Main server
+                srv.rebindService();
             }
+        }
+    }
 
+    private void waiting() {
+        try {
+            this.id = this.serverRI.attachBackupServer(this.backupServerRI);
+            LOGGER.info("This server id -> " + this.id);
+        } catch (RemoteException e) {
+            LOGGER.severe("Main server is out, starting backup server!");
+            this.rebindBackupService();
+        }
 
-            srv.rebindService();
+        while (true) {
+            try {
+                this.serverRI.isAlive();
+            } catch (RemoteException re) {
+                this.serverRI = null;
+                LOGGER.info("" + this.id);
+                if (this.id == 0) {
+                    // Reached the head of backup servers queue , is the next to work
+                    LOGGER.severe("Main server is out, starting backup server!");
+                    this.rebindBackupService();
+                    try {
+                        this.backupServerRI.removeBackupServer(this.id);
+                    } catch (RemoteException e) {
+                        LOGGER.severe(e.toString());
+                    }
+                    break;
+                }
+            }
+            try {
+                TimeUnit.MILLISECONDS.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -71,6 +105,9 @@ public class Server {
         }
     }
 
+    /**
+     * Return boolean if the Admin wants this to be Main or Backup Server
+     */
     private boolean isBackupServer(){
         Scanner scanner = new Scanner(System.in);
         int option = 0;
@@ -82,7 +119,7 @@ public class Server {
             option = scanner.nextInt();
             scanner.nextLine();
         }
-        return option == 1 ? false : true;
+        return option != 1;
     }
 
     private void printChooseMessage(){
@@ -92,30 +129,21 @@ public class Server {
                 "\n> ");
     }
 
+    /**
+     * Rebinds main server
+     */
     private void rebindService() {
         try {
-            //Get proxy to rmiregistry
             Registry registry = contextRMI.getRegistry();
-            //Bind service on rmiregistry and wait for calls
             if (registry != null) {
-                //============ Create Servant ============
-                authFactoryRI= new AuthFactoryImpl();
-
-                //Get service url (including servicename)
+                serverRI = (ServerRI) new ServerImpl(true, null);
                 String serviceUrl = contextRMI.getServicesUrl(0);
-                LOGGER.info("going to rebind service " + serviceUrl);
-
-                //============ Rebind servant ============
-                //Naming.bind(serviceUrl, helloWorldRI);
-                registry.rebind(serviceUrl, authFactoryRI);
-                LOGGER.info("service bound and running. :)");
+                registry.rebind(serviceUrl, serverRI);
             } else {
-                //LOGGER.info("CalculadorServer - Constructor(): create registry on port 1099");
                 LOGGER.info("registry not bound (check IPs). :(");
-                //registry = LocateRegistry.createRegistry(1099);
             }
         } catch (RemoteException ex) {
-            LOGGER.severe(ex.toString());
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -146,4 +174,15 @@ public class Server {
         return null;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setServerRI(ServerRI serverRI) {
+        this.serverRI =  serverRI;
+    }
 }
