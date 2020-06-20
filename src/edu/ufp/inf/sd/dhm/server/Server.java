@@ -3,8 +3,11 @@ package edu.ufp.inf.sd.dhm.server;
 import edu.ufp.inf.sd.dhm.client.Worker;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 
+import java.rmi.NotBoundException;
+import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,6 +18,8 @@ public class Server {
     private SetupContextRMI contextRMI;
 
     private AuthFactoryRI authFactoryRI;
+    private ServerRI serverRI;
+    private ServerRI backupServerRI;
 
     public static void main(String[] args) {
 
@@ -23,8 +28,68 @@ public class Server {
         } else {
             assert args != null;
             Server srv = new Server(args);
+            if(srv.isBackupServer()){
+                // If this is a Backup server
+                srv.serverRI = (ServerRI) srv.lookupService();
+            }else {
+                // Main server
+                if (srv.serverRI == null) {
+                    LOGGER.severe("Main server is dead :X Going to start backup server!");
+                    srv.rebindBackupService();
+                }
+
+                try{
+                    srv.backupServerRI = (ServerRI) new ServerImpl(false,srv);
+                } catch (RemoteException e) {
+                    LOGGER.severe(e.toString());
+                }
+            }
+
+
             srv.rebindService();
         }
+    }
+
+    /**
+     * Rebinds a backup server to the registry
+     */
+    private void rebindBackupService() {
+        try {
+            Registry registry = contextRMI.getRegistry();
+            if (registry != null) {
+                String serviceUrl = contextRMI.getServicesUrl(0);
+                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "going to rebind service @ {0}", serviceUrl);
+                //============ Rebind servant ==========
+                this.backupServerRI.setRun(true);
+                registry.rebind(serviceUrl, this.backupServerRI);
+                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "service bound and running. :)");
+            } else {
+                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "registry not bound (check IPs). :(");
+            }
+        } catch (RemoteException ex) {
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private boolean isBackupServer(){
+        Scanner scanner = new Scanner(System.in);
+        int option = 0;
+        while(option < 1 || option > 2){
+            LOGGER.info("Hello Admin, what type of server is this? " +
+                    "\n1 - Main Server" +
+                    "\n2 - Backup Server " +
+                    "\n> ");
+            option = scanner.nextInt();
+            scanner.nextLine();
+        }
+        return option == 1 ? false : true;
+    }
+
+    private void printChooseMessage(){
+        LOGGER.info("Hello Admin, what type of server is this? " +
+                "\n1 - Main Server" +
+                "\n2 - Backup Server " +
+                "\n> ");
     }
 
     private void rebindService() {
@@ -63,6 +128,22 @@ public class Server {
         } catch (RemoteException e) {
             LOGGER.severe(e.toString());
         }
+    }
+
+    private Remote lookupService() {
+        try {
+            Registry registry = this.contextRMI.getRegistry();
+            if (registry != null) {
+                String serviceUrl = this.contextRMI.getServicesUrl(0);
+                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "going to lookup service @ {0}", serviceUrl);
+                return registry.lookup(serviceUrl);
+            } else {
+                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "registry not bound (check IPs). :(");
+            }
+        } catch (RemoteException | NotBoundException ex) {
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
     }
 
 }
