@@ -73,10 +73,12 @@ public class TaskGroup {
 
     @Override
     public String toString() {
-        return "TaskGroup{" +
+        return "\nTaskGroup{" +
                 "owner= " + this.owner.getUsername() + "\n" +
                 "amout of users= " + this.users.size() + "\n" +
-                "coin pool= " + this.coinPool + "\n" +
+                "coin pool = " + this.coinPool + "\n" +
+                "hashes found progress = " + this.task.getWordsFound() + "/" + this.task.getNumberDiggests() + "\n" +
+                "hashing progress = " + this.task.getProgressTotalHashState() + "/1" +  "\n" +
                 '}';
     }
 }

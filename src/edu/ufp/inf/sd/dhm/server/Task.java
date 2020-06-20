@@ -38,6 +38,11 @@ public class Task {
     private String exchangeName;
     private DBMockup db;
     private boolean paused;
+    private int numberWordsFound; // number of hashes found
+    private double progressTotalHashState; // progress 0.00-1.00 of the string groups hashed
+    private int numberOfStringGroupsHashed; // number of string groups hashed
+    private final int numberDiggests; // number of diggests of the task
+
 
     /**
      * @param hashType  ex. MD5 , SHA1 , etc ...
@@ -46,14 +51,16 @@ public class Task {
      * @param deltaSize amount of lines a single worker need to make in each StringGroup
      */
     public Task(AvailableDigestAlgorithms hashType, int coins, ArrayList<String> digests, int deltaSize, TaskGroup taskGroup) throws IOException, TimeoutException {
-        // TODO change hashType to enum
         this.db = taskGroup.getDb();
         this.wordsFound = new HashMap<>();
         this.hashType = hashType;
         this.coins = coins;
         this.digests = digests;
         this.taskGroup = taskGroup;
-        // TODO break me
+        this.numberWordsFound = 0;
+        this.progressTotalHashState = 0.00;
+        this.numberOfStringGroupsHashed = 0;
+        this.numberDiggests = this.digests.size();
         // Need to populate the free string group
         populateFreeStringGroup(deltaSize);
         User user = this.taskGroup.getOwner();
@@ -189,24 +196,23 @@ public class Task {
     private void listen() {
         try {
             DeliverCallback listen = (consumerTag, delivery) -> {
-                // TODO make the callback to the received message from the worker queue
-                //String message = new String(delivery.getBody(), "UTF-8");
-                //LOGGER.info("[RECV][TASK]" + " Received message from worker");
                 byte[] bytes = delivery.getBody();
                 HashSate hashSate = (HashSate) SerializationUtils.deserialize(bytes);
-                //LOGGER.info(hashSate.toString());
                 switch (hashSate.getStatus()){
                     case NEED_HASHES:
+                        // TODO IS IT REALLY NEEDED
                         break;
                     case DONE:
-                        //LOGGER.info("received a dont w/ string group  ");
                         LOGGER.info("Received a DONE state ...");
+                        this.numberOfStringGroupsHashed++;
+                        this.progressTotalHashState = getProgressTotalHashState();
                         this.giveCoins(1,hashSate.getOwnerName());
                         this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 1 coin!");
                         break;
                     case MATCH:
                         LOGGER.info("Received a MATCH for " + hashSate.getHash() + "w/ word " + hashSate.getWord());
                         this.updateTaskMatches(hashSate.getWord(),hashSate.getHash());
+                        this.numberWordsFound ++;
                         this.giveCoins(10,hashSate.getOwnerName());
                         this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 10 coins!");
                         break;
@@ -248,6 +254,7 @@ public class Task {
 
     /**
      * Gives coins a Worker's user and removes from the TaskGroup
+     * Sends message to server if coins run out
      * owner
      * @param amount given to the user
      * @param username who we want to give
@@ -256,12 +263,13 @@ public class Task {
         User user = this.db.getUser(username);
         User taskOwner = this.taskGroup.getOwner();
         if(user != null){
-            this.db.giveMoney(user,amount);
-            LOGGER.info("Giving " + amount + " coins to " + username + " and removing from " + taskOwner.getUsername() + " balance!");
             try {
-                this.removeCoins(amount,taskOwner);
+                this.removeCoins(amount,taskOwner); // if this reuslts in exeption
+                this.db.giveMoney(user,amount);
+                LOGGER.info("Giving " + amount + " coins to " + username + " and removing from " + taskOwner.getUsername() + " balance!");
             } catch (TaskOwnerRunOutOfMoney taskOwnerRunOutOfMoney) {
                 LOGGER.warning("Owner run out of coins!!! Pausing task !!");
+                //TODO send message to taskowner "Task coin pool without coind, plese inject some ammount and resume"
                 this.pauseTask();
             }
             return;
@@ -304,6 +312,7 @@ public class Task {
         GeneralState generalState = new GeneralState(null,true,null,"",false);
         this.publishToAllWorkers(generalState);
         this.paused = true;
+
     }
 
     private void resumeTask(){
@@ -399,6 +408,14 @@ public class Task {
         }
     }
 
+    /**
+     * @return the progress of the palin text hashed
+     */
+    public double getProgressTotalHashState(){
+        double TaskStatesSent = numberOfStringGroupsHashed;
+        return TaskStatesSent / freeStringGroups.size();
+    }
+
 
     public Channel getSendQueueChannel() {
         return sendQueueChannel;
@@ -408,7 +425,11 @@ public class Task {
         return recvQueue;
     }
 
-    public String getSendQueue() {
-        return sendQueue;
+    public String getSendQueue() { return sendQueue; }
+
+    public int getNumberDiggests() { return numberDiggests; }
+
+    public int getWordsFound(){
+        return this.numberWordsFound;
     }
 }

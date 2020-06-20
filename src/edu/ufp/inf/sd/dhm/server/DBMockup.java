@@ -127,8 +127,10 @@ public class DBMockup {
 
     public synchronized ArrayList<TaskGroup> getTaskGroups() {
         ArrayList<TaskGroup> tasks = new ArrayList<>();
-        this.taskgroups.forEach((user, taskGroup) -> {
-            tasks.add(taskGroup);
+        this.taskgroups.forEach((user,taskGroup) -> {
+            if(!tasks.contains(taskGroup)) { // just prints the taskgroup one time (ISSUE duplication of print task group)
+                tasks.add(taskGroup);
+            }
         });
         return tasks;
     }
@@ -194,7 +196,5 @@ public class DBMockup {
         this.taskgroups.remove(user);
     }
 
-
-    //TODO delete , search
 
 }

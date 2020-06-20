@@ -94,6 +94,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public String printTaskGroups() throws RemoteException {
         ArrayList<TaskGroup> taskGroups = this.listTaskGroups();
+        System.out.println(taskGroups.size());
         LOGGER.info("Printing available task groups ...");
         StringBuilder builder = new StringBuilder();
         if(!taskGroups.isEmpty()){

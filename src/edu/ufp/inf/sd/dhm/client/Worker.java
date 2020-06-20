@@ -115,14 +115,9 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         try {
             DeliverCallback work = (consumerTag, delivery) -> {
                 this.workingThread = Thread.currentThread();
-                //LOGGER.info("W#" + this.id + " working ...");
-                //LOGGER.info("deserializatin taskstate");
                 byte[] bytes = delivery.getBody();
                 TaskState taskState = (TaskState) SerializationUtils.deserialize(bytes);
                 this.original = taskState.getStringGroup();
-                //LOGGER.info("I'm currently on thread + " +  Thread.currentThread().getName());
-                //LOGGER.info("This is this thread delivery tag " + delivery.getEnvelope().getDeliveryTag());
-                //LOGGER.info(taskState.toString());
                 this.workerThread = new WorkerThread(taskState,this);
                 this.workerThread.setDeliveryTag(delivery.getEnvelope().getDeliveryTag());
                 this.workerThread.run();
@@ -169,7 +164,6 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     }
 
     public void match(String word, String hash, long deliveryTagThread){
-        //LOGGER.info("Sending information that we found a match!");
         this.sendHashState(true,false,word,hash);
     }
 
@@ -188,10 +182,8 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     private void listenToGeneral() {
         try {
             DeliverCallback listen = (consumerTag, delivery) -> {
-                //LOGGER.info("[RECV][W#" + this.id + "][" + this.generalQueue + "]" + " Received General STATE'");
                 byte[] bytes = delivery.getBody();
                 GeneralState generalState = (GeneralState) SerializationUtils.deserialize(bytes);
-                //LOGGER.info(generalState.toString());
                 if(generalState.isResume()){
                     //resuming working after being paused
                     LOGGER.info("Going to resume the work !!!");
