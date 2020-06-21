@@ -10,18 +10,17 @@ import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 
 public interface AuthSessionRI extends Remote {
-    public void joinTaskGroup(String username) throws RemoteException;
-    public ArrayList<TaskGroup> listTaskGroups() throws RemoteException;
-    public String printTaskGroups() throws RemoteException;
-    public String createTaskGroup() throws IOException, TimeoutException;
-    public void logout() throws RemoteException;
+    public void joinTaskGroup(String username,String token) throws RemoteException;
+    public String printTaskGroups(String token) throws RemoteException;
+    public String createTaskGroup(String token) throws IOException, TimeoutException;
+    public void logout(String token) throws RemoteException;
     public User getUser() throws RemoteException;
-    public void addWorkerToTask(String taskOwner, WorkerRI worker) throws RemoteException;
-    public User getUserFromName(String username) throws RemoteException;
-    public String getCoins() throws RemoteException;
-    public void buyCoins(int amount) throws RemoteException;
-    public String pauseTask() throws RemoteException;
-    public String resumeTask() throws RemoteException;
-    public String deleteTaskGroup() throws RemoteException;
+    public void addWorkerToTask(String taskOwner, WorkerRI worker,String token) throws RemoteException;
+    public User getUserFromName(String username, String token) throws RemoteException;
+    public String getCoins(String token) throws RemoteException;
+    public void buyCoins(int amount,String token) throws RemoteException;
+    public String pauseTask(String token) throws RemoteException;
+    public String resumeTask(String token) throws RemoteException;
+    public String deleteTaskGroup(String token) throws RemoteException;
     public void isAlive() throws RemoteException;
 }

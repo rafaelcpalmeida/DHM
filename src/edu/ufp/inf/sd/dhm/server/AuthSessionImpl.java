@@ -1,14 +1,19 @@
 package edu.ufp.inf.sd.dhm.server;
 
+import edu.ufp.inf.sd.dhm.client.ClientRI;
 import edu.ufp.inf.sd.dhm.client.Worker;
 import edu.ufp.inf.sd.dhm.client.WorkerRI;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
@@ -18,39 +23,79 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     private User user;
     private ArrayList<TaskGroup> taskGroups;
     private ServerImpl server;
+    private String token;
+    private ClientRI clientRI;
 
-    public AuthSessionImpl(DBMockup db, User user, ServerImpl server) throws RemoteException{
+    public AuthSessionImpl(DBMockup db, User user, ServerImpl server, String plainToken, ClientRI clientRI) throws RemoteException{
         super();
         this.db = db;
         this.user = user;
         taskGroups = this.fetchTaskGroups();
         this.server = server;
+        this.token = plainToken;
+        this.clientRI = clientRI;
     }
+
+
 
     /**
      * The user buys coins , calls the method giveMoney() in @DBMockup
      * @param amount of coins being purchased
      */
-    public void buyCoins(int amount){
+    @Override
+    public void buyCoins(int amount,String token) throws RemoteException{
+        if(!this.isTokenValid(token)){
+            this.clientRI.sendMessage("Warning. Invalid token!");
+            return;
+        }
         LOGGER.info("User " + this.user.getUsername() + " bought " + amount + " coins!");
         this.db.giveMoney(this.user,amount);
         this.server.updateBackupServers();
     }
 
+    /**
+     * Pauses task by sending a GeneralState to all workers
+     */
     @Override
-    public String pauseTask() throws RemoteException {
+    public String pauseTask(String token) throws RemoteException {
+        if(!this.isTokenValid(token)){
+            this.clientRI.sendMessage("Warning. Invalid token!");
+            return null;
+        }
         TaskGroup taskGroup = this.db.getTaskGroup(this.user);
         return taskGroup.getTask().pauseAllTask();
     }
 
+    /**
+     * Compares the token sent by the client
+     * @param token digest sent by client
+     * @return true if hashes are equal , false if not
+     */
+    private boolean isTokenValid(String token){
+        String hashedToken = this.getHashFromPlainToken(this.token);
+        return hashedToken.equals(token);
+    }
+
+    /**
+     * Resumes task by sending a GeneralState to all workers
+     *
+     */
     @Override
-    public String resumeTask() throws RemoteException {
+    public String resumeTask(String token) throws RemoteException {
+        if(!this.isTokenValid(token)){
+            this.clientRI.sendMessage("Warning. Invalid token!");
+            return null;
+        }
         TaskGroup taskGroup = this.db.getTaskGroup(this.user);
         return taskGroup.getTask().resumeAllTask();
     }
 
     @Override
-    public String deleteTaskGroup() throws RemoteException {
+    public String deleteTaskGroup(String token) throws RemoteException {
+        if(!this.isTokenValid(token)){
+            this.clientRI.sendMessage("Warning. Invalid token!");
+            return null;
+        }
         TaskGroup taskGroup = this.db.getTaskGroup(this.user);
         if(taskGroup != null){
             try {
@@ -80,7 +125,11 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      * @throws RemoteException if remote error
      */
     @Override
-    public void joinTaskGroup(String username) throws RemoteException {
+    public void joinTaskGroup(String username, String token) throws RemoteException {
+        if(!this.isTokenValid(token)){
+            this.clientRI.sendMessage("Warning. Invalid token!");
+            return;
+        }
         User taskOwner = this.db.getUser(username);
         if(taskOwner == null){
             LOGGER.info("Owner not found ...");
@@ -97,8 +146,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      * @return ArrayList<TaskGroup>
      * @throws RemoteException if remote error
      */
-    @Override
-    public ArrayList<TaskGroup> listTaskGroups() throws RemoteException {
+    private ArrayList<TaskGroup> listTaskGroups() throws RemoteException {
         return this.db.getTaskGroups();
     }
 
@@ -106,7 +154,11 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      * Prints all the task groups
      */
     @Override
-    public String printTaskGroups() throws RemoteException {
+    public String printTaskGroups(String token) throws RemoteException {
+        if(!this.isTokenValid(token)){
+            this.clientRI.sendMessage("Warning. Invalid token!");
+            return null;
+        }
         ArrayList<TaskGroup> taskGroups = this.listTaskGroups();
         LOGGER.info("Printing available task groups ...");
         StringBuilder builder = new StringBuilder();
@@ -138,7 +190,11 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      * @throws RemoteException if remote error
      */
     @Override
-    public String createTaskGroup() throws IOException, TimeoutException {
+    public String createTaskGroup(String token) throws IOException, TimeoutException {
+        if(!this.isTokenValid(token)){
+            this.clientRI.sendMessage("Warning. Invalid token!");
+            return null;
+        }
         TaskGroup taskGroup = new TaskGroup(this.user.getCoins(),this.user,this.db);
         taskGroup.addUser(this.user);
         this.db.insert(taskGroup,user);     // inserting in db
@@ -151,7 +207,11 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      * @throws RemoteException if remote error
      */
     @Override
-    public void logout() throws RemoteException {
+    public void logout(String token) throws RemoteException {
+        if(!this.isTokenValid(token)){
+            this.clientRI.sendMessage("Warning. Invalid token!");
+            return;
+        }
         this.db.removeSession(this.user);
         this.server.updateBackupServers();
         //System.exit(1);
@@ -162,7 +222,11 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      * @param taskOwner who has the task
      * @param worker added to task
      */
-    public void addWorkerToTask(String taskOwner, WorkerRI worker) throws RemoteException{
+    public void addWorkerToTask(String taskOwner, WorkerRI worker,String token) throws RemoteException{
+        if(!this.isTokenValid(token)){
+            this.clientRI.sendMessage("Warning. Invalid token!");
+            return;
+        }
         User userTaskOwner = this.db.getUser(taskOwner);
         if(taskOwner == null){
             LOGGER.info("Owner not found ...");
@@ -177,12 +241,20 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     }
 
     @Override
-    public User getUserFromName(String username) throws RemoteException {
+    public User getUserFromName(String username, String token) throws RemoteException {
+        if(!this.isTokenValid(token)){
+            this.clientRI.sendMessage("Warning. Invalid token!");
+            return null;
+        }
         return this.db.getUser(username);
     }
 
     @Override
-    public String getCoins() throws RemoteException {
+    public String getCoins(String token) throws RemoteException {
+        if(!this.isTokenValid(token)){
+            this.clientRI.sendMessage("Warning. Invalid token!");
+            return null;
+        }
         return "You currently have " + this.db.getCoins(this.user) + " coins.";
     }
 
@@ -200,5 +272,36 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     private ArrayList<TaskGroup> fetchTaskGroups() {
         return null;
     }
+
+    /**
+     * Returns the digest from the plain token
+     * @param plainToken token in plain text
+     * @return Hash in MD5 of the plain text
+     */
+    private String getHashFromPlainToken(String plainToken){
+        MessageDigest algorithm = null;
+        try {
+            algorithm = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            LOGGER.severe("Could not get instance of digest algorithm");
+        }
+        byte[] hashByte = algorithm.digest(plainToken.getBytes(StandardCharsets.UTF_8));
+        return this.byteToString(hashByte);
+    }
+
+
+    /**
+     * @param bytes w/ the digest
+     * @return bytes in string
+     */
+    private String byteToString(byte[] bytes){
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : bytes) {
+            hexString.append(String.format("%02X", 0xFF & b));
+        }
+        return hexString.toString();
+    }
+
+
 
 }

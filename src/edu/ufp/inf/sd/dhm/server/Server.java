@@ -30,7 +30,7 @@ public class Server {
             assert args != null;
             Server srv = new Server(args);
             //if(srv.isBackupServer()){
-            if(true){
+            if(false){
                 // If this is a Backup server
                 try{
                     srv.serverRI = (ServerRI) srv.lookupService();

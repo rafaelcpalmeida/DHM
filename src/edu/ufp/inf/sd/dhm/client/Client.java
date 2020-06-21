@@ -89,7 +89,7 @@ public class Client {
         AuthFactoryRI authFactoryRI = this.getUpdatedAuthFactoryRI();
         try {
             LOGGER.info("Returning session ...");
-            return authFactoryRI.login(this.user);
+            return authFactoryRI.login(this.user,this.client);
         } catch (RemoteException e) {
             LOGGER.severe("Couldn't login ...");
         }
@@ -148,7 +148,7 @@ public class Client {
                     // success
                     LOGGER.info("Welcome " + guest.getUsername() + " , ur session is starting ...");
                     this.user = guest;
-                    return this.authFactoryRI.login(guest);
+                    return this.authFactoryRI.login(guest,this.client);
                 }
                 LOGGER.info("Could not register your account :/");
                 return null;
@@ -162,7 +162,7 @@ public class Client {
                 Guest guest2 = new Guest(name2,passwd2);
                 LOGGER.info("Welcome " + guest2.getUsername() + " , ur session is starting ...");
                 this.user = guest2;
-                return this.authFactoryRI.login(guest2);
+                return this.authFactoryRI.login(guest2,this.client);
             default:
                 return this.loginService();
         }
@@ -208,16 +208,16 @@ public class Client {
             scanner.nextLine();
             switch (option1){
                 case 1:
-                    LOGGER.info(authSessionRI.printTaskGroups());
+                    LOGGER.info(authSessionRI.printTaskGroups(this.client.getHashedToken()));
                     break;
                 case 2:
-                    LOGGER.info(authSessionRI.createTaskGroup());
+                    LOGGER.info(authSessionRI.createTaskGroup(this.client.getHashedToken()));
                     break;
                 case 3:
                     LOGGER.info("Which task u want to join?\n> ");
                     String option2 = scanner.nextLine();
                     scanner.nextLine();
-                    authSessionRI.joinTaskGroup(option2);
+                    authSessionRI.joinTaskGroup(option2,this.client.getHashedToken());
                     break;
                 case 4:
                     LOGGER.info("Which task u want to join ur worker?\n> ");
@@ -226,22 +226,22 @@ public class Client {
                     this.createWorker(authSessionRI,taskOwner);
                     break;
                 case 5:
-                    LOGGER.info(authSessionRI.getCoins());
+                    LOGGER.info(authSessionRI.getCoins(this.client.getHashedToken()));
                     break;
                 case 6:
                     LOGGER.info("How much do u wanna buy? only bitcoin...\n> ");
                     String amountToBuy = scanner.nextLine();
                     scanner.nextLine();
-                    authSessionRI.buyCoins(Integer.parseInt(amountToBuy));
+                    authSessionRI.buyCoins(Integer.parseInt(amountToBuy),this.client.getHashedToken());
                     break;
                 case 7:
-                    LOGGER.info(authSessionRI.pauseTask());
+                    LOGGER.info(authSessionRI.pauseTask(this.client.getHashedToken()));
                     break;
                 case 8:
-                    LOGGER.info(authSessionRI.resumeTask());
+                    LOGGER.info(authSessionRI.resumeTask(this.client.getHashedToken()));
                     break;
                 case 9:
-                    LOGGER.info(authSessionRI.deleteTaskGroup());
+                    LOGGER.info(authSessionRI.deleteTaskGroup(this.client.getHashedToken()));
                     break;
                 default:
                     LOGGER.info("Wrong option ... ");
@@ -256,6 +256,6 @@ public class Client {
      */
     private void createWorker(AuthSessionRI authSessionRI, String taskOwner) throws IOException, TimeoutException {
         Worker worker = new Worker(authSessionRI.getUser().getAmountOfWorkers() + 1,authSessionRI.getUser(),taskOwner);
-        authSessionRI.addWorkerToTask(taskOwner,worker);
+        authSessionRI.addWorkerToTask(taskOwner,worker,this.client.getHashedToken());
     }
 }
