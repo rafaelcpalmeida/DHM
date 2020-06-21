@@ -38,6 +38,10 @@ public class Task {
     private String exchangeName;
     private DBMockup db;
     private boolean paused;
+    private int numberWordsFound; // number of hashes found
+    private double progressTotalHashState; // progress 0.00-1.00 of the string groups hashed
+    private int numberOfStringGroupsHashed; // number of string groups hashed
+    private final int numberDiggests; // number of diggests of the task
 
     /**
      * @param hashType  ex. MD5 , SHA1 , etc ...
@@ -53,6 +57,10 @@ public class Task {
         this.coins = coins;
         this.digests = digests;
         this.taskGroup = taskGroup;
+        this.numberWordsFound = 0;
+        this.progressTotalHashState = 0.00;
+        this.numberOfStringGroupsHashed = 0;
+        this.numberDiggests = this.digests.size();
         // TODO break me
         // Need to populate the free string group
         populateFreeStringGroup(deltaSize);
@@ -201,11 +209,15 @@ public class Task {
                     case DONE:
                         //LOGGER.info("received a dont w/ string group  ");
                         LOGGER.info("Received a DONE state ...");
+                        this.numberOfStringGroupsHashed++;
+                        this.progressTotalHashState = getProgressTotalHashState();
                         if(this.giveCoins(1,hashSate.getOwnerName()))
                             this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 1 coin!");
                         break;
                     case MATCH:
                         LOGGER.info("Received a MATCH for " + hashSate.getHash() + "w/ word " + hashSate.getWord());
+                        this.updateTaskMatches(hashSate.getWord(),hashSate.getHash());
+                        this.numberWordsFound ++;
                         this.updateTaskMatches(hashSate.getWord(),hashSate.getHash());
                         if(this.giveCoins(10,hashSate.getOwnerName()))
                             this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 10 coins!");
@@ -408,6 +420,19 @@ public class Task {
         }
     }
 
+    /**
+     * @return the progress of the palin text hashed
+     */
+    public double getProgressTotalHashState(){
+        double TaskStatesSent = numberOfStringGroupsHashed;
+        return TaskStatesSent / freeStringGroups.size();
+    }
+
+    public int getWordsFound(){
+        return this.numberWordsFound;
+    }
+
+    public int getNumberDiggests() { return numberDiggests;}
 
     public Channel getSendQueueChannel() {
         return sendQueueChannel;
