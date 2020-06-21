@@ -8,6 +8,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,6 +23,10 @@ public class Client {
     //make run-client PACKAGE_NAME=edu.ufp.inf.sd.dhm.client.Client SERVICE_NAME=DhmService
     private SetupContextRMI contextRMI;
     private AuthFactoryRI authFactoryRI;
+    private ServerRI serverRI;
+    private ClientImpl client;
+    private Guest user;
+
     public Client(String[] args) {
         try {
             String registryIP   = args[0];
@@ -35,19 +40,12 @@ public class Client {
 
     private Remote lookupService() {
         try {
-            //Get proxy to rmiregistry
             Registry registry = contextRMI.getRegistry();
-            //Lookup service on rmiregistry and wait for calls
             if (registry != null) {
-                //Get service url (including servicename)
                 String serviceUrl = contextRMI.getServicesUrl(0);
-                //Logger.getLogger(this.getClass().getName()).log(Level.INFO, "going to lookup service @ {0}", serviceUrl);
-
-                //============ Get proxy to HelloWorld service ============
-                authFactoryRI = (AuthFactoryRI) registry.lookup(serviceUrl);
+                serverRI = (ServerRI) registry.lookup(serviceUrl);
             } else {
                 Logger.getLogger(this.getClass().getName()).log(Level.INFO, "registry not bound (check IPs). :(");
-                //registry = LocateRegistry.createRegistry(1099);
             }
         } catch (RemoteException | NotBoundException ex) {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
@@ -56,8 +54,51 @@ public class Client {
     }
 
     private void playService() {
+        this.authFactoryRI = this.getUpdatedAuthFactoryRI();
         try {
             AuthSessionRI authSessionRI = this.loginService();
+            this.playSession(authSessionRI);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private AuthFactoryRI getUpdatedAuthFactoryRI(){
+        for(int attempt = 0 ; attempt < 5 ; attempt++){
+            try {
+                AuthFactoryRI authFactory= this.client.getServerRI().getAuthFactory(); // get the updated ServerRI
+                LOGGER.info("new factory received");
+                return authFactory;
+            }catch (RemoteException e){
+                LOGGER.warning("Could not get connection to Main server, attempting again ...");
+            }
+            try {
+                TimeUnit.MILLISECONDS.sleep(50);
+            } catch (InterruptedException e) {
+                LOGGER.severe(e.toString());
+            }
+        }
+        LOGGER.severe("Server request timeout w/ 5 attempts , I'mma get the hell outta here. Bye");
+        System.exit(-1);
+        return null;
+    }
+
+    private AuthSessionRI getUpdatedSessionRI(){
+        LOGGER.info("going to update session");
+        AuthFactoryRI authFactoryRI = this.getUpdatedAuthFactoryRI();
+        try {
+            LOGGER.info("Returning session ...");
+            return authFactoryRI.login(this.user);
+        } catch (RemoteException e) {
+            LOGGER.severe("Couldn't login ...");
+        }
+        LOGGER.info("Returning null");
+        return null;
+    }
+
+    private void playSession(AuthSessionRI authSessionRI){
+        try{
             if (authSessionRI != null) {
                 LOGGER.info("Session started !");
                 this.chooseOption(authSessionRI);
@@ -65,13 +106,23 @@ public class Client {
                 LOGGER.info("Credentials invalid");
                 this.playService();
             }
-            LOGGER.info("Going to finish ...");
         } catch (RemoteException ex) {
-            LOGGER.severe(ex.toString());
+            LOGGER.severe("EXCEPTION -> "  + ex.toString());
+            LOGGER.severe("Probably the main server is down , going to ask the new backup server");
+            AuthSessionRI sessionRI = this.getUpdatedSessionRI();
+            if(sessionRI != null){
+                LOGGER.info("session not null!");
+                this.playSession(sessionRI);
+            }else{
+                LOGGER.info("session null");
+                LOGGER.severe("Could not get session due to an error in sessionRI , I'm dyyyyyyyyyyying");
+                System.exit(-1);
+            }
+
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.severe(e.toString());
         } catch (TimeoutException e) {
-            e.printStackTrace();
+            LOGGER.severe(e.toString());
         }
     }
 
@@ -96,6 +147,7 @@ public class Client {
                 if(this.authFactoryRI.register(guest)){
                     // success
                     LOGGER.info("Welcome " + guest.getUsername() + " , ur session is starting ...");
+                    this.user = guest;
                     return this.authFactoryRI.login(guest);
                 }
                 LOGGER.info("Could not register your account :/");
@@ -109,6 +161,7 @@ public class Client {
                 scanner.nextLine();
                 Guest guest2 = new Guest(name2,passwd2);
                 LOGGER.info("Welcome " + guest2.getUsername() + " , ur session is starting ...");
+                this.user = guest2;
                 return this.authFactoryRI.login(guest2);
             default:
                 return this.loginService();
@@ -121,13 +174,15 @@ public class Client {
             System.exit(-1);
         } else {
             assert args != null;
-            //1. ============ Setup client RMI context ============
-            Client client = new Client(args);
-            //2. ============ Lookup service ============
-            client.lookupService();
-            //3. ============ Play with service ============
-            client.playService();
+            Client cl = new Client(args);
+            cl.lookupService();
+            cl.start();
         }
+    }
+
+    private void start() throws RemoteException {
+        this.client = new ClientImpl(this.serverRI);
+        this.playService();
     }
 
 

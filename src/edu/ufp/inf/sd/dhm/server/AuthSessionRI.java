@@ -23,4 +23,5 @@ public interface AuthSessionRI extends Remote {
     public String pauseTask() throws RemoteException;
     public String resumeTask() throws RemoteException;
     public String deleteTaskGroup() throws RemoteException;
+    public void isAlive() throws RemoteException;
 }

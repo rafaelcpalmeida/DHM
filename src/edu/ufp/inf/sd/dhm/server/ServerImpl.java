@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serializable {
     private static final Logger LOGGER = Logger.getLogger(ServerImpl.class.getName());
     private HashMap<ClientRI,String> clientRIS;
+    private AuthFactoryImpl authFactory;
     private Server backupServer;
     private ArrayList<ServerRI> backupServersRIS;
     private boolean run;                        // can this server run functions?
@@ -22,6 +23,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     public ServerImpl(boolean run, Server backupServer) throws RemoteException{
         super();
         this.run = run;
+        this.authFactory = new AuthFactoryImpl(this);
         this.backupServer = backupServer;
         this.backupServersRIS = new ArrayList<>();
         this.clientRIS = new HashMap<>();
@@ -29,6 +31,11 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
         if(this.run)this.startThread();
     }
 
+    /**
+     * Start working !
+     * Basically  , checks every 50 ms if any client or backup server
+     * is not working. If not , remove it from the list.
+     */
     private void startThread() {
         new Thread(() -> {
             while (true) {
@@ -94,7 +101,8 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Notifies all clients and servers that this server is the Main
+     * Notifies all clients and servers that this server is the Main server
+     * I'm the boss now
      */
     private void notifyAllClients() {
         for (Map.Entry<ClientRI, String> entry : this.clientRIS.entrySet()) {
@@ -113,6 +121,11 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
         }
     }
 
+    /**
+     * Used to check if the server is Alive, if a exception is throwned
+     * than is not alive.
+     * @throws RemoteException if is not Alive
+     */
     @Override
     public void isAlive() throws RemoteException {
     //nothing
@@ -123,6 +136,10 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
         this.removeBackupServer(this.backupServersRIS.get(id));
     }
 
+    /**
+     * Removes a backup server from queue
+     * @param serverRI being removed form backup servers queue
+     */
     private void removeBackupServer(ServerRI serverRI) throws RemoteException{
         LOGGER.info("Server exists: " + this.backupServersRIS.contains(serverRI));
 
@@ -146,7 +163,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Detach client
+     * Detach client from clients list
      * @param clientRI client being detached from clients list
      */
     @Override
@@ -156,8 +173,8 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Attach client
-     * @param clientRI client beeing attached to clients list
+     * Attach client to clients list
+     * @param clientRI client being attached to clients list
      */
     @Override
     public void attach(ClientRI clientRI) throws RemoteException {
@@ -165,20 +182,30 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
         this.updateBackupServers();
     }
 
+    @Override
+    public AuthFactoryRI getAuthFactory() throws RemoteException {
+        return this.authFactory;
+    }
+
     /**
-     * Create new thread to update all Servers
+     * Create new thread to update all Servers and send all the info this server has
      */
-    private void updateBackupServers() {
+    public void updateBackupServers() {
         new Thread(() -> {
             for (ServerRI backupServerRI: this.backupServersRIS) {
                 try {
-                    backupServerRI.copyInfo(this.clientRIS);
+                    backupServerRI.copyInfo(this.clientRIS,this.authFactory.getDb());
                     backupServerRI.copyBackupServers(this.backupServersRIS);
                 } catch (Exception ignored) { }
             }
         }).start();
     }
 
+    /**
+     * Adds a server to the tail of the backup servers queue
+     * @param backupServerRI added to the backup servers queue
+     * @return the id from the queue the server is right now
+     */
     @Override
     public int attachBackupServer(ServerRI backupServerRI) throws RemoteException {
         LOGGER.info("Adding backup server!");
@@ -192,13 +219,29 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
         this.backupServer.setServerRI(serverRI);
     }
 
+    /**
+     * Copies info from main server and updates the server who call this method
+     * @param clientRIS all updated clients
+     * @param dbMockup  db updated
+     */
     @Override
-    public void copyInfo(HashMap<ClientRI, String> clientRIS) throws RemoteException {
+    public void copyInfo(HashMap<ClientRI, String> clientRIS,DBMockup dbMockup) throws RemoteException {
+        LOGGER.info("Received info and updated my db");
         this.clientRIS = clientRIS;
+        this.authFactory.setDb(dbMockup);       // updates db
     }
 
+    /**
+     * Sends an updated list w/ all the backup servers
+     * @param backupServersRIS list w/ all the backup servers
+     */
     @Override
     public void copyBackupServers(ArrayList<ServerRI> backupServersRIS) throws RemoteException {
         this.backupServersRIS = backupServersRIS;
     }
+
+    public void setAuthFactory(AuthFactoryImpl authFactory) {
+        this.authFactory = authFactory;
+    }
+
 }

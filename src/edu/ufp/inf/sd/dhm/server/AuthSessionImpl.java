@@ -17,12 +17,14 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     private DBMockup db;
     private User user;
     private ArrayList<TaskGroup> taskGroups;
+    private ServerImpl server;
 
-    public AuthSessionImpl(DBMockup db, User user) throws RemoteException{
+    public AuthSessionImpl(DBMockup db, User user, ServerImpl server) throws RemoteException{
         super();
         this.db = db;
         this.user = user;
         taskGroups = this.fetchTaskGroups();
+        this.server = server;
     }
 
     /**
@@ -32,6 +34,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     public void buyCoins(int amount){
         LOGGER.info("User " + this.user.getUsername() + " bought " + amount + " coins!");
         this.db.giveMoney(this.user,amount);
+        this.server.updateBackupServers();
     }
 
     @Override
@@ -56,9 +59,19 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
                 LOGGER.warning(e.toString());
             }
             this.db.deleteTaskGroup(this.user);
+            this.server.updateBackupServers();
             return "TaskGroup removed!";
         }
         return "TaskGroup not found!";
+    }
+
+    /**
+     * @throws RemoteException throwned if sessions is not available ( maybe beacause
+     * the server who had it creashed)
+     */
+    @Override
+    public void isAlive() throws RemoteException {
+        //do nothing
     }
 
     /**
@@ -76,6 +89,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         TaskGroup taskGroup = this.getTaskGroupFrom(taskOwner);
         taskGroup.addUser(this.user);
         this.db.insert(taskGroup,this.user);
+        this.server.updateBackupServers();
         LOGGER.info(username + " added to task group!");
     }
 
@@ -128,6 +142,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         TaskGroup taskGroup = new TaskGroup(this.user.getCoins(),this.user,this.db);
         taskGroup.addUser(this.user);
         this.db.insert(taskGroup,user);     // inserting in db
+        this.server.updateBackupServers();
         LOGGER.info("task group added for owner " + this.user.getUsername());
         return "Task Group created!";
     }
@@ -138,6 +153,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public void logout() throws RemoteException {
         this.db.removeSession(this.user);
+        this.server.updateBackupServers();
         //System.exit(1);
     }
 
@@ -156,6 +172,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         TaskGroup taskGroup = this.getTaskGroupFrom(userTaskOwner);
         taskGroup.getTask().addWorker(worker);
         this.user.addWorker();
+        this.server.updateBackupServers();
         LOGGER.info("Worker added to task!");
     }
 

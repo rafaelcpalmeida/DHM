@@ -5,6 +5,7 @@ import edu.ufp.inf.sd.dhm.client.Worker;
 import edu.ufp.inf.sd.dhm.client.WorkerRI;
 import edu.ufp.inf.sd.dhm.server.exceptions.TaskOwnerRunOutOfMoney;
 
+import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,7 +15,7 @@ import java.util.HashMap;
  * Only 1 instance of DBMockup exists and it's
  * static.
  */
-public class DBMockup {
+public class DBMockup implements Serializable {
     private static DBMockup dbMockup = null;
     private HashMap<User, AuthSessionRI> sessions;   // User -> session
     private HashMap<User, String> users;             // User -> passw
@@ -78,6 +79,10 @@ public class DBMockup {
      */
     public void insert(AuthSessionRI sessionRI, User user) {
         if(!this.sessions.containsKey(user)) this.sessions.put(user,sessionRI);
+    }
+
+    public void update(AuthSessionRI sessionRI, User user){
+        if(this.sessions.containsKey(user)) this.sessions.put(user,sessionRI);
     }
 
     /**

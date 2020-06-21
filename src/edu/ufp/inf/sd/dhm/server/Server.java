@@ -29,9 +29,15 @@ public class Server {
         } else {
             assert args != null;
             Server srv = new Server(args);
-            if(srv.isBackupServer()){
+            //if(srv.isBackupServer()){
+            if(true){
                 // If this is a Backup server
-                srv.serverRI = (ServerRI) srv.lookupService();
+                try{
+                    srv.serverRI = (ServerRI) srv.lookupService();
+                } catch (Exception e){
+                    LOGGER.severe(e.toString());
+                }
+
                 if (srv.serverRI == null) {
                     LOGGER.severe("Main server is dead :X Going to start backup server!");
                     srv.rebindBackupService();

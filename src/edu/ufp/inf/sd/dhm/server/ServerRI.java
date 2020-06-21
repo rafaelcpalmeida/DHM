@@ -20,7 +20,7 @@ public interface ServerRI extends Remote {
 
     void setServerRI(ServerRI serverRI) throws RemoteException;
 
-    void copyInfo(HashMap<ClientRI, String> clientRIS) throws RemoteException;
+    void copyInfo(HashMap<ClientRI, String> clientRIS, DBMockup db) throws RemoteException;
 
     void copyBackupServers(ArrayList<ServerRI> backupServersRIS) throws RemoteException;
 
@@ -29,4 +29,6 @@ public interface ServerRI extends Remote {
     void detach(ClientRI clientRI) throws RemoteException;
 
     void attach(ClientRI clientRI) throws RemoteException;
+
+    AuthFactoryRI getAuthFactory() throws RemoteException;
 }
