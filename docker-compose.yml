@@ -34,7 +34,7 @@ services:
 
   server:
     build: ./server
-    entrypoint: /app/run-server.sh
+    entrypoint: tail -f /dev/null
     working_dir: /app
     container_name: rmi_run_server
     environment:
