@@ -312,5 +312,8 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         return this.token;
     }
 
+    protected void updateServers(){
+        this.server.updateBackupServers();
+    }
 
 }

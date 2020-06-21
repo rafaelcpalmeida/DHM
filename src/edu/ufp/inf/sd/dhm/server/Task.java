@@ -267,6 +267,7 @@ public class Task {
                 return false;
             }
             LOGGER.info("Giving " + amount + " coins to " + username + " and removing from " + taskOwner.getUsername() + " balance!");
+            this.taskGroup.getOwnerSession().updateServers();
             return true;
         }
         LOGGER.warning("Username was not found to give coins!");
