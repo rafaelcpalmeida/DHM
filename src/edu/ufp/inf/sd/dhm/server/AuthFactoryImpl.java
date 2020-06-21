@@ -74,6 +74,11 @@ public class AuthFactoryImpl extends UnicastRemoteObject implements AuthFactoryR
                 this.server.updateBackupServers();
                 return sessionRI;
             }
+            // if session if valid , going to get the token from that session
+            // and send it to the client stub
+            AuthSessionImpl authSession = (AuthSessionImpl) authSessionRI;
+            clientRI.sendToken(authSession.getToken());
+            return authSessionRI;
         }
         LOGGER.warning("User not found!");
         return null;
@@ -87,7 +92,7 @@ public class AuthFactoryImpl extends UnicastRemoteObject implements AuthFactoryR
         Random r = new Random();
         int minCaracteres = 5;
         int maxCaracteres = 30;
-        int caracteresLenght = r.nextInt(minCaracteres-maxCaracteres) + minCaracteres;
+        int caracteresLenght = r.nextInt(maxCaracteres-minCaracteres) + minCaracteres;
         for(int i = 0 ; i<caracteresLenght ; i++){
             //get a random letter
             char c = (char)(r.nextInt(26) + 'a');

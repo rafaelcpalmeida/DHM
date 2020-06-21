@@ -203,6 +203,8 @@ public class Client {
                     "\n7 - pause task " +
                     "\n8 - resume task " +
                     "\n9 - delete task group " +
+                    "\n10 - print token " +
+                    "\n11 - logout " +
                     "\n> ");
             int option1 = scanner.nextInt();
             scanner.nextLine();
@@ -242,6 +244,13 @@ public class Client {
                     break;
                 case 9:
                     LOGGER.info(authSessionRI.deleteTaskGroup(this.client.getHashedToken()));
+                    break;
+                case 10:
+                    LOGGER.info("ur token -> " + this.client.getToken());
+                    break;
+                case 11:
+                    authSessionRI.logout(this.client.getHashedToken());
+                    this.playService();
                     break;
                 default:
                     LOGGER.info("Wrong option ... ");

@@ -201,14 +201,14 @@ public class Task {
                     case DONE:
                         //LOGGER.info("received a dont w/ string group  ");
                         LOGGER.info("Received a DONE state ...");
-                        this.giveCoins(1,hashSate.getOwnerName());
-                        this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 1 coin!");
+                        if(this.giveCoins(1,hashSate.getOwnerName()))
+                            this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 1 coin!");
                         break;
                     case MATCH:
                         LOGGER.info("Received a MATCH for " + hashSate.getHash() + "w/ word " + hashSate.getWord());
                         this.updateTaskMatches(hashSate.getWord(),hashSate.getHash());
-                        this.giveCoins(10,hashSate.getOwnerName());
-                        this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 10 coins!");
+                        if(this.giveCoins(10,hashSate.getOwnerName()))
+                            this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 10 coins!");
                         break;
                     case DONE_AND_MATCH:
                         // TODO DONE_AND_MATCH
@@ -251,22 +251,26 @@ public class Task {
      * owner
      * @param amount given to the user
      * @param username who we want to give
+     * @return if the transaction was successfull or not
      */
-    private void giveCoins(int amount, String username) {
+    private boolean giveCoins(int amount, String username) {
         User user = this.db.getUser(username);
         User taskOwner = this.taskGroup.getOwner();
         if(user != null){
-            this.db.giveMoney(user,amount);
-            LOGGER.info("Giving " + amount + " coins to " + username + " and removing from " + taskOwner.getUsername() + " balance!");
             try {
                 this.removeCoins(amount,taskOwner);
+                this.db.giveMoney(user,amount);
             } catch (TaskOwnerRunOutOfMoney taskOwnerRunOutOfMoney) {
                 LOGGER.warning("Owner run out of coins!!! Pausing task !!");
+                this.taskGroup.getOwnerSession().sendMessage("You run out of coins , pls buy some otherwise the task won't resume.");
                 this.pauseTask();
+                return false;
             }
-            return;
+            LOGGER.info("Giving " + amount + " coins to " + username + " and removing from " + taskOwner.getUsername() + " balance!");
+            return true;
         }
         LOGGER.warning("Username was not found to give coins!");
+        return false;
     }
 
     /**
@@ -291,6 +295,11 @@ public class Task {
     public String resumeAllTask(){
         if(this.paused){
             // not paused yet
+            User taskOwner = this.taskGroup.getOwner();
+            if(this.taskGroup.getDb().getCoins(taskOwner) == 0){
+                // no coins to resume task
+                return "You have no coins u broke a** b**ch , pls buy some";
+            }
             this.resumeTask();
             return "Task has been resumed!";
         }

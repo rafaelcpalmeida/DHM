@@ -133,7 +133,8 @@ public class DBMockup implements Serializable {
     public synchronized ArrayList<TaskGroup> getTaskGroups() {
         ArrayList<TaskGroup> tasks = new ArrayList<>();
         this.taskgroups.forEach((user, taskGroup) -> {
-            tasks.add(taskGroup);
+            if(!tasks.contains(taskGroup))
+                tasks.add(taskGroup);
         });
         return tasks;
     }

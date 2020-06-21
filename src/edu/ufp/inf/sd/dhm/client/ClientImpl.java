@@ -92,4 +92,8 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI{
         }
         return hexString.toString();
     }
+
+    public String getToken() {
+        return token;
+    }
 }

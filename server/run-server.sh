@@ -48,9 +48,9 @@ if [[ "${JAR_LOCATION}" != "empty" ]] && [[ "${JAR_NAME}" != "empty" ]]; then
     fi
 fi
 
-CMD+="-Djava.rmi.server.hostname=dhm_server "
+CMD+="-Djava.rmi.server.hostname=rmi_run_server "
 CMD+="-Djava.security.policy=file:////app/security-policies/serverAllPermition.policy "
-CMD+="${PACKAGE_NAME} dhm_server 1099 ${SERVICE_NAME}"
+CMD+="${PACKAGE_NAME} rmi_run_server 1099 ${SERVICE_NAME}"
 
 $CMD
 #bash

@@ -36,7 +36,13 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         this.clientRI = clientRI;
     }
 
-
+    protected void sendMessage(String msg){
+        try {
+            this.clientRI.sendMessage(msg);
+        } catch (RemoteException e) {
+            LOGGER.severe(e.toString());
+        }
+    }
 
     /**
      * The user buys coins , calls the method giveMoney() in @DBMockup
@@ -45,7 +51,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public void buyCoins(int amount,String token) throws RemoteException{
         if(!this.isTokenValid(token)){
-            this.clientRI.sendMessage("Warning. Invalid token!");
+            this.sendMessage("Warning. Invalid token!");
             return;
         }
         LOGGER.info("User " + this.user.getUsername() + " bought " + amount + " coins!");
@@ -59,7 +65,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public String pauseTask(String token) throws RemoteException {
         if(!this.isTokenValid(token)){
-            this.clientRI.sendMessage("Warning. Invalid token!");
+            this.sendMessage("Warning. Invalid token!");
             return null;
         }
         TaskGroup taskGroup = this.db.getTaskGroup(this.user);
@@ -83,7 +89,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public String resumeTask(String token) throws RemoteException {
         if(!this.isTokenValid(token)){
-            this.clientRI.sendMessage("Warning. Invalid token!");
+            this.sendMessage("Warning. Invalid token!");
             return null;
         }
         TaskGroup taskGroup = this.db.getTaskGroup(this.user);
@@ -93,7 +99,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public String deleteTaskGroup(String token) throws RemoteException {
         if(!this.isTokenValid(token)){
-            this.clientRI.sendMessage("Warning. Invalid token!");
+            this.sendMessage("Warning. Invalid token!");
             return null;
         }
         TaskGroup taskGroup = this.db.getTaskGroup(this.user);
@@ -127,7 +133,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public void joinTaskGroup(String username, String token) throws RemoteException {
         if(!this.isTokenValid(token)){
-            this.clientRI.sendMessage("Warning. Invalid token!");
+            this.sendMessage("Warning. Invalid token!");
             return;
         }
         User taskOwner = this.db.getUser(username);
@@ -156,7 +162,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public String printTaskGroups(String token) throws RemoteException {
         if(!this.isTokenValid(token)){
-            this.clientRI.sendMessage("Warning. Invalid token!");
+            this.sendMessage("Warning. Invalid token!");
             return null;
         }
         ArrayList<TaskGroup> taskGroups = this.listTaskGroups();
@@ -192,10 +198,10 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public String createTaskGroup(String token) throws IOException, TimeoutException {
         if(!this.isTokenValid(token)){
-            this.clientRI.sendMessage("Warning. Invalid token!");
+            this.sendMessage("Warning. Invalid token!");
             return null;
         }
-        TaskGroup taskGroup = new TaskGroup(this.user.getCoins(),this.user,this.db);
+        TaskGroup taskGroup = new TaskGroup(this.user.getCoins(),this.user,this.db,this);
         taskGroup.addUser(this.user);
         this.db.insert(taskGroup,user);     // inserting in db
         this.server.updateBackupServers();
@@ -209,12 +215,12 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public void logout(String token) throws RemoteException {
         if(!this.isTokenValid(token)){
-            this.clientRI.sendMessage("Warning. Invalid token!");
+            this.sendMessage("Warning. Invalid token!");
             return;
         }
         this.db.removeSession(this.user);
+        this.sendMessage("Logging out.. see u soon");
         this.server.updateBackupServers();
-        //System.exit(1);
     }
 
     /**
@@ -224,7 +230,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      */
     public void addWorkerToTask(String taskOwner, WorkerRI worker,String token) throws RemoteException{
         if(!this.isTokenValid(token)){
-            this.clientRI.sendMessage("Warning. Invalid token!");
+            this.sendMessage("Warning. Invalid token!");
             return;
         }
         User userTaskOwner = this.db.getUser(taskOwner);
@@ -243,7 +249,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public User getUserFromName(String username, String token) throws RemoteException {
         if(!this.isTokenValid(token)){
-            this.clientRI.sendMessage("Warning. Invalid token!");
+            this.sendMessage("Warning. Invalid token!");
             return null;
         }
         return this.db.getUser(username);
@@ -252,7 +258,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     @Override
     public String getCoins(String token) throws RemoteException {
         if(!this.isTokenValid(token)){
-            this.clientRI.sendMessage("Warning. Invalid token!");
+            this.sendMessage("Warning. Invalid token!");
             return null;
         }
         return "You currently have " + this.db.getCoins(this.user) + " coins.";
@@ -302,6 +308,9 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         return hexString.toString();
     }
 
+    protected String getToken(){
+        return this.token;
+    }
 
 
 }
