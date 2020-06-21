@@ -29,8 +29,11 @@ ifndef SERVICE_NAME
 	$(error Missing SERVICE_NAME variable. Usage: make run-server JAR_LOCATION (optional) JAR_NAME (optional) PACKAGE_NAME SERVICE_NAME)
 endif
 
-	JAR_LOCATION=$(JAR_LOCATION) JAR_NAME=$(JAR_NAME) PACKAGE_NAME=$(PACKAGE_NAME) SERVICE_NAME=$(SERVICE_NAME) docker-compose up server
+	JAR_LOCATION=$(JAR_LOCATION) JAR_NAME=$(JAR_NAME) PACKAGE_NAME=$(PACKAGE_NAME) SERVICE_NAME=$(SERVICE_NAME) docker-compose up -d server
 
+.PHONY: enter-server
+enter-server: ### Enters running server container
+	@docker exec -it rmi_run_server bash
 
 JAR_LOCATION = "empty"
 JAR_NAME = "empty"
