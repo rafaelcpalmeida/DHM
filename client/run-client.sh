@@ -53,22 +53,8 @@ if [[ "${JAR_LOCATION}" != "empty" ]] && [[ "${JAR_NAME}" != "empty" ]]; then
     fi
 fi
 
-SERVER=${SERVER}
-PORT=1099
-
-attempts=0
-while ! nc -zvw3 $SERVER $PORT; do
-  sleep 3
-  attempts=$((attempts + 1))
-
-  if [[ "$attempts" -gt "10" ]]; then
-    echo "Timeout while waiting for server to start"
-    exit 1
-  fi
-done
-
 CMD+="-Djava.security.policy=file:////app/security-policies/serverAllPermition.policy "
 CMD+="-D$packageName.servicename=${SERVICE_NAME} "
-CMD+="${PACKAGE_NAME} $SERVER 1099 ${SERVICE_NAME}"
+CMD+="${PACKAGE_NAME} rmi_run_server 1099 ${SERVICE_NAME}"
 
 $CMD

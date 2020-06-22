@@ -53,7 +53,8 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
                     try {
                         clientRI.isAlive();
                     } catch (Exception ignored) {
-                        System.out.println("Client is out, removing!");
+                        LOGGER.info(ignored.toString());
+                        LOGGER.info("Client is out, removing!");
                         toRemove.add(clientRI);
                     }
                 }
@@ -72,7 +73,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
                     try {
                         serverRI.isAlive();
                     } catch (Exception ignored) {
-                        System.out.println("Backup server is out, removing!");
+                        LOGGER.info("Backup server is out, removing!");
                         toRemoveServers.add(serverRI);
                     }
                 }

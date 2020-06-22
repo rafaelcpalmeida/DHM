@@ -13,8 +13,6 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
     public ClientImpl(ServerRI serverRI) throws RemoteException {
         this.serverRI = serverRI;
-        LOGGER.info("ServerRI");
-        LOGGER.info(serverRI.toString());
         this.serverRI.attach(this); //attach this client to server
     }
 

@@ -138,10 +138,8 @@ public class Client {
             case 1:
                 LOGGER.info("You are about to register our service ...\nPlease tell us the username u want to register:\n> ");
                 String name = scanner.nextLine();
-                scanner.nextLine();
                 LOGGER.info("Now tell us the password , dont worry , we ain't peeking:\n> ");
                 String passwd = scanner.nextLine();
-                scanner.nextLine();
                 User User = new User(name,passwd);
                 if(this.authFactoryRI.register(User)){
                     // success
@@ -154,10 +152,8 @@ public class Client {
             case 2:
                 LOGGER.info("username:\n> ");
                 String name2 = scanner.nextLine();
-                scanner.nextLine();
                 LOGGER.info("password:\n> ");
                 String passwd2 = scanner.nextLine();
-                scanner.nextLine();
                 User User2 = new User(name2,passwd2);
                 LOGGER.info("Welcome " + User2.getUsername() + " , ur session is starting ...");
                 this.user = User2;
@@ -191,7 +187,7 @@ public class Client {
     private void chooseOption(AuthSessionRI authSessionRI) throws IOException, TimeoutException {
         while(true){
             Scanner scanner = new Scanner(System.in);
-            System.out.print("Hello , what do u want to do? " +
+            LOGGER.info("Hello , what do u want to do? " +
                     "\n1 - print task groups" +
                     "\n2 - create task group " +
                     "\n3 - join task group " +
@@ -223,7 +219,6 @@ public class Client {
                 case 6 -> {
                     LOGGER.info("How much do u wanna buy? only bitcoin...\n> ");
                     String amountToBuy = scanner.nextLine();
-                    scanner.nextLine();
                     authSessionRI.buyCoins(Integer.parseInt(amountToBuy));
                 }
                 case 7 -> LOGGER.info(authSessionRI.pauseTask());

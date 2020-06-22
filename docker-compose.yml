@@ -20,8 +20,11 @@ services:
       JAR_NAME: ${JAR_NAME}
       PACKAGE_NAME: ${PACKAGE_NAME}
       SERVICE_NAME: ${SERVICE_NAME}
-      SERVER: ${SERVER}
-    network_mode: host
+    networks:
+      local_network:
+        aliases:
+          - client
+          - rmi_client
     working_dir: /app
     volumes:
       - ./src:/app/src
