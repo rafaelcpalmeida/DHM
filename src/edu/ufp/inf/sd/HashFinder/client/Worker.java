@@ -1,14 +1,14 @@
-package edu.ufp.inf.sd.dhm.client;
+package edu.ufp.inf.sd.HashFinder.client;
 
 import com.rabbitmq.client.*;
-import edu.ufp.inf.sd.dhm.Rabbit;
-import edu.ufp.inf.sd.dhm.server.AvailableDigestAlgorithms;
-import edu.ufp.inf.sd.dhm.server.StringGroup;
-import edu.ufp.inf.sd.dhm.server.User;
-import edu.ufp.inf.sd.dhm.server.states.GeneralState;
-import edu.ufp.inf.sd.dhm.server.states.HashSate;
-import edu.ufp.inf.sd.dhm.server.states.TaskState;
-import edu.ufp.inf.sd.dhm.server.states.WorkerStatus;
+import edu.ufp.inf.sd.HashFinder.Rabbit;
+import edu.ufp.inf.sd.HashFinder.server.AvailableDigestAlgorithms;
+import edu.ufp.inf.sd.HashFinder.server.StringGroup;
+import edu.ufp.inf.sd.HashFinder.server.User;
+import edu.ufp.inf.sd.HashFinder.server.states.GeneralState;
+import edu.ufp.inf.sd.HashFinder.server.states.HashSate;
+import edu.ufp.inf.sd.HashFinder.server.states.TaskState;
+import edu.ufp.inf.sd.HashFinder.server.states.WorkerStatus;
 import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.BufferedReader;

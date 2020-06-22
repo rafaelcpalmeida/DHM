@@ -1,7 +1,6 @@
-package edu.ufp.inf.sd.dhm.client;
+package edu.ufp.inf.sd.HashFinder.client;
 
-import edu.ufp.inf.sd.dhm.server.ServerImpl;
-import edu.ufp.inf.sd.dhm.server.ServerRI;
+import edu.ufp.inf.sd.HashFinder.server.ServerRI;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

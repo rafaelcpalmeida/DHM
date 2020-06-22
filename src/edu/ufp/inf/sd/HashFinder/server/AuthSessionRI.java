@@ -1,12 +1,10 @@
-package edu.ufp.inf.sd.dhm.server;
+package edu.ufp.inf.sd.HashFinder.server;
 
-import edu.ufp.inf.sd.dhm.client.Worker;
-import edu.ufp.inf.sd.dhm.client.WorkerRI;
+import edu.ufp.inf.sd.HashFinder.client.WorkerRI;
 
 import java.io.IOException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 
 public interface AuthSessionRI extends Remote {

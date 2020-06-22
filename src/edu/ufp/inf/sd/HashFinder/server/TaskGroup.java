@@ -1,7 +1,6 @@
-package edu.ufp.inf.sd.dhm.server;
+package edu.ufp.inf.sd.HashFinder.server;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 

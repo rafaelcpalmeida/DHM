@@ -1,11 +1,9 @@
-package edu.ufp.inf.sd.dhm.client;
+package edu.ufp.inf.sd.HashFinder.client;
 
-import edu.ufp.inf.sd.dhm.server.AvailableDigestAlgorithms;
-import edu.ufp.inf.sd.dhm.server.StringGroup;
-import edu.ufp.inf.sd.dhm.server.states.TaskState;
+import edu.ufp.inf.sd.HashFinder.server.StringGroup;
+import edu.ufp.inf.sd.HashFinder.server.states.TaskState;
 
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.security.MessageDigest;

@@ -1,9 +1,8 @@
-package edu.ufp.inf.sd.dhm;
+package edu.ufp.inf.sd.HashFinder;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import edu.ufp.inf.sd.dhm.server.AuthFactoryImpl;
 
 import java.util.logging.Logger;
 

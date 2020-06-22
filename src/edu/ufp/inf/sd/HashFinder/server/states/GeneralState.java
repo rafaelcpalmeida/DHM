@@ -1,6 +1,6 @@
-package edu.ufp.inf.sd.dhm.server.states;
+package edu.ufp.inf.sd.HashFinder.server.states;
 
-import edu.ufp.inf.sd.dhm.server.AvailableDigestAlgorithms;
+import edu.ufp.inf.sd.HashFinder.server.AvailableDigestAlgorithms;
 
 import java.io.Serializable;
 import java.util.ArrayList;

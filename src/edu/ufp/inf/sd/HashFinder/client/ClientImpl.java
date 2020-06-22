@@ -1,10 +1,8 @@
-package edu.ufp.inf.sd.dhm.client;
+package edu.ufp.inf.sd.HashFinder.client;
 
-import edu.ufp.inf.sd.dhm.server.Server;
-import edu.ufp.inf.sd.dhm.server.ServerImpl;
-import edu.ufp.inf.sd.dhm.server.ServerRI;
+import edu.ufp.inf.sd.HashFinder.server.Server;
+import edu.ufp.inf.sd.HashFinder.server.ServerRI;
 
-import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;

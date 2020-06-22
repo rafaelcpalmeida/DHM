@@ -1,9 +1,6 @@
-package edu.ufp.inf.sd.dhm.server;
-
-import edu.ufp.inf.sd.dhm.client.Worker;
+package edu.ufp.inf.sd.HashFinder.server;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 
 public class User implements Serializable {
     private final String username;

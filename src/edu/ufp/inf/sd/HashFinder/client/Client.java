@@ -1,6 +1,6 @@
-package edu.ufp.inf.sd.dhm.client;
+package edu.ufp.inf.sd.HashFinder.client;
 
-import edu.ufp.inf.sd.dhm.server.*;
+import edu.ufp.inf.sd.HashFinder.server.*;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 import java.io.IOException;
 import java.rmi.NotBoundException;
@@ -20,7 +20,7 @@ public class Client {
                 "\033[32m%1$tF %1$tT\033[39m \u001b[33m[%4$-7s]\u001b[0m %5$s %n");
         LOGGER = Logger.getLogger(Client.class.getName());
     }
-    //make run-client PACKAGE_NAME=edu.ufp.inf.sd.dhm.client.Client SERVICE_NAME=DhmService
+    //make run-client PACKAGE_NAME=edu.ufp.inf.sd.HashFinder.client.Client SERVICE_NAME=DhmService
     private SetupContextRMI contextRMI;
     private AuthFactoryRI authFactoryRI;
     private ServerRI serverRI;

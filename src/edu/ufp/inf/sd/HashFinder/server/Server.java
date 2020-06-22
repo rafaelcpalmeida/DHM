@@ -1,6 +1,5 @@
-package edu.ufp.inf.sd.dhm.server;
+package edu.ufp.inf.sd.HashFinder.server;
 
-import edu.ufp.inf.sd.dhm.client.Worker;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 
 import java.rmi.NotBoundException;
@@ -13,7 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Server {
-    //make run-server PACKAGE_NAME=edu.ufp.inf.sd.dhm.server.Server SERVICE_NAME=DhmService
+    //make run-server PACKAGE_NAME=edu.ufp.inf.sd.HashFinder.server.Server SERVICE_NAME=DhmService
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
     private int id;
     private SetupContextRMI contextRMI;

@@ -1,13 +1,12 @@
-package edu.ufp.inf.sd.dhm.server;
+package edu.ufp.inf.sd.HashFinder.server;
 
 import com.rabbitmq.client.*;
-import edu.ufp.inf.sd.dhm.Rabbit;
-import edu.ufp.inf.sd.dhm.client.Worker;
-import edu.ufp.inf.sd.dhm.client.WorkerRI;
-import edu.ufp.inf.sd.dhm.server.exceptions.TaskOwnerRunOutOfMoney;
-import edu.ufp.inf.sd.dhm.server.states.GeneralState;
-import edu.ufp.inf.sd.dhm.server.states.HashSate;
-import edu.ufp.inf.sd.dhm.server.states.TaskState;
+import edu.ufp.inf.sd.HashFinder.Rabbit;
+import edu.ufp.inf.sd.HashFinder.client.WorkerRI;
+import edu.ufp.inf.sd.HashFinder.server.exceptions.TaskOwnerRunOutOfMoney;
+import edu.ufp.inf.sd.HashFinder.server.states.GeneralState;
+import edu.ufp.inf.sd.HashFinder.server.states.HashSate;
+import edu.ufp.inf.sd.HashFinder.server.states.TaskState;
 import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.*;

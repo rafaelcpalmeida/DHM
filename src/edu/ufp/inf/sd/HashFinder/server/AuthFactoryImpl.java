@@ -1,16 +1,11 @@
-package edu.ufp.inf.sd.dhm.server;
+package edu.ufp.inf.sd.HashFinder.server;
 
-import edu.ufp.inf.sd.dhm.client.ClientRI;
-import edu.ufp.inf.sd.dhm.client.Guest;
-import edu.ufp.inf.sd.dhm.client.Worker;
+import edu.ufp.inf.sd.HashFinder.client.ClientRI;
+import edu.ufp.inf.sd.HashFinder.client.Guest;
 
-import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Random;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class AuthFactoryImpl extends UnicastRemoteObject implements AuthFactoryRI {

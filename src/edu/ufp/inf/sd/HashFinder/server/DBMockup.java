@@ -1,9 +1,9 @@
-package edu.ufp.inf.sd.dhm.server;
+package edu.ufp.inf.sd.HashFinder.server;
 
-import edu.ufp.inf.sd.dhm.client.Guest;
-import edu.ufp.inf.sd.dhm.client.Worker;
-import edu.ufp.inf.sd.dhm.client.WorkerRI;
-import edu.ufp.inf.sd.dhm.server.exceptions.TaskOwnerRunOutOfMoney;
+import edu.ufp.inf.sd.HashFinder.client.Guest;
+import edu.ufp.inf.sd.HashFinder.client.Worker;
+import edu.ufp.inf.sd.HashFinder.client.WorkerRI;
+import edu.ufp.inf.sd.HashFinder.server.exceptions.TaskOwnerRunOutOfMoney;
 
 import java.io.Serializable;
 import java.rmi.RemoteException;

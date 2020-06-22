@@ -1,19 +1,15 @@
-package edu.ufp.inf.sd.dhm.server;
+package edu.ufp.inf.sd.HashFinder.server;
 
-import edu.ufp.inf.sd.dhm.client.ClientRI;
-import edu.ufp.inf.sd.dhm.client.Worker;
-import edu.ufp.inf.sd.dhm.client.WorkerRI;
+import edu.ufp.inf.sd.HashFinder.client.ClientRI;
+import edu.ufp.inf.sd.HashFinder.client.WorkerRI;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
