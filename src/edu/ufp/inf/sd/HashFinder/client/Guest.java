@@ -3,7 +3,7 @@ package edu.ufp.inf.sd.HashFinder.client;
 import java.io.Serializable;
 
 /**
- * Used to make the authentication
+ * Login
  */
 public class Guest implements Serializable {
     private final String username;

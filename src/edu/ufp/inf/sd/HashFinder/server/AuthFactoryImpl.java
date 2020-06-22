@@ -26,9 +26,8 @@ public class AuthFactoryImpl extends UnicastRemoteObject implements AuthFactoryR
 
 
     /**
-     * @param guest being registered in db
-     * @return boolean
-     * @throws RemoteException if remote error
+     * Registo
+     * Insere user na BD
      */
     @Override
     public boolean register(Guest guest) throws RemoteException {
@@ -42,17 +41,15 @@ public class AuthFactoryImpl extends UnicastRemoteObject implements AuthFactoryR
     }
 
     /**
-     * @param guest being logged into db
-     * @return AuthSessionRI session remote object ( stub )
-     * @throws RemoteException if remote error
+     * Retorna sessão (STUB)
      */
     @Override
     public AuthSessionRI login(Guest guest, ClientRI clientRI) throws RemoteException {
         if(this.db.exists(guest)){
             User user = this.db.getUser(guest.getUsername());
             if(!this.db.existsSession(user)){
-                // Session not created , let's create one for this user
-                String newPlainToken = this.getRandomPlainToken();
+                // Cria a sessão
+                String newPlainToken = this.generateToken();
                 AuthSessionRI authSessionRI = new AuthSessionImpl(this.db,user,this.server,newPlainToken,clientRI);
                 clientRI.sendToken(newPlainToken);
                 this.db.insert(authSessionRI,user);
@@ -61,35 +58,32 @@ public class AuthFactoryImpl extends UnicastRemoteObject implements AuthFactoryR
             }
             AuthSessionRI authSessionRI= this.db.getSession(user);
             if(!this.checkIfSessionIsValid(authSessionRI)){
-                // if the session is not valid
-                String newPlainToken = this.getRandomPlainToken();
+                // Sessão inválida
+                String newPlainToken = this.generateToken();
                 AuthSessionRI sessionRI = new AuthSessionImpl(this.db,user,this.server,newPlainToken, clientRI);
                 clientRI.sendToken(newPlainToken);
                 this.db.update(sessionRI,user); // updates sessions
                 this.server.updateBackupServers();
                 return sessionRI;
             }
-            // if session if valid , going to get the token from that session
-            // and send it to the client stub
+            // Envia token da sessão ao cliente
             AuthSessionImpl authSession = (AuthSessionImpl) authSessionRI;
             clientRI.sendToken(authSession.getToken());
             return authSessionRI;
         }
-        LOGGER.warning("User not found!");
         return null;
     }
 
     /**
-     * @return random string between 5 and 30 caracters
+     * Gera uma string 5<=30
      */
-    private String getRandomPlainToken(){
+    private String generateToken(){
         StringBuilder builder = new StringBuilder();
         Random r = new Random();
         int minCaracteres = 5;
         int maxCaracteres = 30;
         int caracteresLenght = r.nextInt(maxCaracteres-minCaracteres) + minCaracteres;
         for(int i = 0 ; i<caracteresLenght ; i++){
-            //get a random letter
             char c = (char)(r.nextInt(26) + 'a');
             builder.append(c);
         }
@@ -98,12 +92,11 @@ public class AuthFactoryImpl extends UnicastRemoteObject implements AuthFactoryR
 
 
     /**
-     * Checks if a sessions is running ...
-     * @param authSessionRI checking
+     * Verifica sessão
      */
     private boolean checkIfSessionIsValid(AuthSessionRI authSessionRI){
         try {
-            authSessionRI.isAlive();
+            authSessionRI.checkIfClientOk();
             return true;
         } catch (RemoteException ignored) {
             return false;

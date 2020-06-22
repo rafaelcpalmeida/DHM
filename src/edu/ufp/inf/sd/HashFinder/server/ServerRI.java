@@ -11,7 +11,7 @@ public interface ServerRI extends Remote {
 
     void setRun(boolean b) throws RemoteException;
 
-    void isAlive() throws RemoteException;
+    void checkIfClientOk() throws RemoteException;
 
     void removeBackupServer(int id) throws RemoteException;
 

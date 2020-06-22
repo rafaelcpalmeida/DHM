@@ -11,10 +11,10 @@ public class HashSate implements Serializable {
     int workerId;
     String ownerName;
     WorkerStatus status;
-    StringGroup original;           // StringGroup originally attached to this worker
-    StringGroup pending;            // StringGroup pending to mine ( not mined yet )
-    String hash;      // String w/ the match
-    String word;      // String w/ the word found
+    StringGroup original;
+    StringGroup pending;
+    String hash;
+    String word;
 
     public HashSate(WorkerStatus workerStatus, StringGroup original, StringGroup pending, String hash,int workerId, String word, String ownerName) {
         this.status = workerStatus;

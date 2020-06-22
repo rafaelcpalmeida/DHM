@@ -41,25 +41,27 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     }
 
     /**
-     * The user buys coins , calls the method giveMoney() in @DBMockup
-     * @param amount of coins being purchased
+     * Adicionar dinheiro à conta
+     * Insere BD giveMoney(())
      */
     @Override
     public void buyCoins(int amount,String token) throws RemoteException{
+        //Lixo
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return;
         }
-        LOGGER.info("User " + this.user.getUsername() + " bought " + amount + " coins!");
+        LOGGER.info(amount + " coins added to user account");
         this.db.giveMoney(this.user,amount);
         this.server.updateBackupServers();
     }
 
     /**
-     * Pauses task by sending a GeneralState to all workers
+     * Pausa a Task e envia fannout a informar
      */
     @Override
     public String pauseTask(String token) throws RemoteException {
+       //Lixo
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return null;
@@ -69,9 +71,8 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     }
 
     /**
-     * Compares the token sent by the client
-     * @param token digest sent by client
-     * @return true if hashes are equal , false if not
+     * JWT
+     * Lixo
      */
     private boolean isTokenValid(String token){
         String hashedToken = this.getHashFromPlainToken(this.token);
@@ -79,11 +80,11 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     }
 
     /**
-     * Resumes task by sending a GeneralState to all workers
-     *
+     * Envia Fannout para workers iniciarem trabalho após paragem
      */
     @Override
     public String resumeTask(String token) throws RemoteException {
+        //Lixo
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return null;
@@ -92,8 +93,12 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         return taskGroup.getTask().resumeAllTask();
     }
 
+    /**
+     * Apaga TaskGroup
+     */
     @Override
     public String deleteTaskGroup(String token) throws RemoteException {
+        //Lixo
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return null;
@@ -109,16 +114,14 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
             this.server.updateBackupServers();
             return "TaskGroup removed!";
         }
-        return "TaskGroup not found!";
+        return;
     }
 
     /**
-     * @throws RemoteException throwned if sessions is not available ( maybe beacause
-     * the server who had it creashed)
+     * Verifica a sessão
      */
     @Override
-    public void isAlive() throws RemoteException {
-        //do nothing
+    public void checkIfClientOk() throws RemoteException {
     }
 
     /**
@@ -128,40 +131,34 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      */
     @Override
     public void joinTaskGroup(String username, String token) throws RemoteException {
+        //Lixo
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return;
         }
         User taskOwner = this.db.getUser(username);
         if(taskOwner == null){
-            LOGGER.info("Owner not found ...");
+            LOGGER.info("Owner withou TaskGroup");
             return;
         }
         TaskGroup taskGroup = this.getTaskGroupFrom(taskOwner);
         taskGroup.addUser(this.user);
         this.db.insert(taskGroup,this.user);
         this.server.updateBackupServers();
-        LOGGER.info(username + " added to task group!");
+        LOGGER.info(username + " entering TaskGroup...");
     }
 
     /**
-     * @return ArrayList<TaskGroup>
-     * @throws RemoteException if remote error
-     */
-    private ArrayList<TaskGroup> listTaskGroups() throws RemoteException {
-        return this.db.getTaskGroups();
-    }
-
-    /**
-     * Prints all the task groups
+     * Listar TaskGroups
      */
     @Override
     public String printTaskGroups(String token) throws RemoteException {
+        //Lixo
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return null;
         }
-        ArrayList<TaskGroup> taskGroups = this.listTaskGroups();
+        ArrayList<TaskGroup> taskGroups = this.db.getTaskGroups();
         LOGGER.info("Printing available task groups ...");
         StringBuilder builder = new StringBuilder();
         if(!taskGroups.isEmpty()){
@@ -171,12 +168,11 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
             }
             return builder.toString();
         }
-        return "Cannot print taskGroups because there aren't any.";
+        return "No TaskGroups found";
     }
 
     /**
-     * @param user who owns taskGroups
-     * @return TaskGroup owned by user or null if none own
+     * Retorna TaskGroups de um determinado user
      */
     private TaskGroup getTaskGroupFrom(User user){
         if(!this.db.getTaskGroups().isEmpty()){
@@ -188,21 +184,21 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
     }
 
     /**
-     * @return TaskGroup created
-     * @throws RemoteException if remote error
+     *Criar TaskGroup
      */
     @Override
     public String createTaskGroup(String token) throws IOException, TimeoutException {
+        //Lixo
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return null;
         }
         TaskGroup taskGroup = new TaskGroup(this.user.getCoins(),this.user,this.db,this);
         taskGroup.addUser(this.user);
-        this.db.insert(taskGroup,user);     // inserting in db
+        this.db.insert(taskGroup,user);
         this.server.updateBackupServers();
-        LOGGER.info("task group added for owner " + this.user.getUsername());
-        return "Task Group created!";
+        LOGGER.info("TaskGrouo created by  " + this.user.getUsername());
+        return;
     }
 
     /**
@@ -210,40 +206,40 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      */
     @Override
     public void logout(String token) throws RemoteException {
+        //Lixo
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return;
         }
         this.db.removeSession(this.user);
-        this.sendMessage("Logging out.. see u soon");
+        this.sendMessage("Logging out..");
         this.server.updateBackupServers();
     }
 
     /**
-     * Adds a worker to a task
-     * @param taskOwner who has the task
-     * @param worker added to task
+     * Adiciona worker à Task
      */
     public void addWorkerToTask(String taskOwner, WorkerRI worker,String token) throws RemoteException{
+        //Lixo
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return;
         }
         User userTaskOwner = this.db.getUser(taskOwner);
         if(taskOwner == null){
-            LOGGER.info("Owner not found ...");
+            LOGGER.info("Task not found");
             return;
         }
-        LOGGER.info("adding worker ...");
         TaskGroup taskGroup = this.getTaskGroupFrom(userTaskOwner);
         taskGroup.getTask().addWorker(worker);
         this.user.addWorker();
         this.server.updateBackupServers();
-        LOGGER.info("Worker added to task!");
+        LOGGER.info("Worker joined Task!");
     }
 
     @Override
     public User getUserFromName(String username, String token) throws RemoteException {
+        //Lixo
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return null;
@@ -253,32 +249,27 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
 
     @Override
     public String getCoins(String token) throws RemoteException {
+        //Lixo
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return null;
         }
-        return "You currently have " + this.db.getCoins(this.user) + " coins.";
+        return "You have " + this.db.getCoins(this.user) + " coins.";
     }
-
-
 
     public User getUser(){
         return this.user;
     }
 
     /**
-     * Returns all the taskgroup of the user from the bd
-     * Goes to db.taskgroups to fetch the info.
-     * @return ArrayList<TaskGroup> of this user
+     * Lista Taskgroups BD
      */
     private ArrayList<TaskGroup> fetchTaskGroups() {
         return null;
     }
 
     /**
-     * Returns the digest from the plain token
-     * @param plainToken token in plain text
-     * @return Hash in MD5 of the plain text
+     * Retorna o tipo de algoritmo
      */
     private String getHashFromPlainToken(String plainToken){
         MessageDigest algorithm = null;
@@ -293,8 +284,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
 
 
     /**
-     * @param bytes w/ the digest
-     * @return bytes in string
+     * Converte byte para string
      */
     private String byteToString(byte[] bytes){
         StringBuilder hexString = new StringBuilder();
@@ -304,6 +294,7 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         return hexString.toString();
     }
 
+    //Lixo
     protected String getToken(){
         return this.token;
     }

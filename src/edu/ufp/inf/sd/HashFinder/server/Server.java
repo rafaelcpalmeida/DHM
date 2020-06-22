@@ -28,26 +28,24 @@ public class Server {
         } else {
             assert args != null;
             Server srv = new Server(args);
-            if(srv.isBackupServer()){
-                // If this is a Backup server
-                try{
+            if (srv.isBackupServer()) {
+                try {
                     srv.serverRI = (ServerRI) srv.lookupService();
-                } catch (Exception e){
+                } catch (Exception e) {
                     LOGGER.severe(e.toString());
                 }
 
                 if (srv.serverRI == null) {
-                    LOGGER.severe("Main server is dead :X Going to start backup server!");
+                    LOGGER.severe("Main server failed!\nStarting backup server...");
                     srv.rebindBackupService();
                 }
-                try{
-                    srv.backupServerRI = (ServerRI) new ServerImpl(false,srv);
+                try {
+                    srv.backupServerRI = (ServerRI) new ServerImpl(false, srv);
                 } catch (RemoteException e) {
                     LOGGER.severe(e.toString());
                 }
                 srv.waiting();
-            }else {
-                // Main server
+            } else {
                 srv.rebindService();
             }
         }
@@ -56,20 +54,19 @@ public class Server {
     private void waiting() {
         try {
             this.id = this.serverRI.attachBackupServer(this.backupServerRI);
-            LOGGER.info("This server id -> " + this.id);
+            //LOGGER.info("Server id -> " + this.id);
         } catch (RemoteException e) {
-            LOGGER.severe("Main server is out, starting backup server!");
+            LOGGER.severe("Main server failed!\nStarting backup server...");
             this.rebindBackupService();
         }
-
+//Token Ring
         while (true) {
             try {
-                this.serverRI.isAlive();
+                this.serverRI.checkIfClientOk();
             } catch (RemoteException re) {
                 this.serverRI = null;
                 LOGGER.info("" + this.id);
                 if (this.id == 0) {
-                    // Reached the head of backup servers queue , is the next to work
                     LOGGER.severe("Main server is out, starting backup server!");
                     this.rebindBackupService();
                     try {
@@ -89,7 +86,7 @@ public class Server {
     }
 
     /**
-     * Rebinds a backup server to the registry
+     * Rebinds do servidor de backup
      */
     private void rebindBackupService() {
         try {
@@ -97,7 +94,6 @@ public class Server {
             if (registry != null) {
                 String serviceUrl = contextRMI.getServicesUrl(0);
                 Logger.getLogger(this.getClass().getName()).log(Level.INFO, "going to rebind service @ {0}", serviceUrl);
-                //============ Rebind servant ==========
                 this.backupServerRI.setRun(true);
                 registry.rebind(serviceUrl, this.backupServerRI);
                 Logger.getLogger(this.getClass().getName()).log(Level.INFO, "service bound and running. :)");
@@ -110,12 +106,12 @@ public class Server {
     }
 
     /**
-     * Return boolean if the Admin wants this to be Main or Backup Server
+     * Definir tipo de servidor (main ou backup)
      */
-    private boolean isBackupServer(){
+    private boolean isBackupServer() {
         Scanner scanner = new Scanner(System.in);
         int option = 0;
-        while(option < 1 || option > 2){
+        while (option < 1 || option > 2) {
             LOGGER.info("Hello Admin, what type of server is this? " +
                     "\n1 - Main Server" +
                     "\n2 - Backup Server " +
@@ -126,12 +122,6 @@ public class Server {
         return option != 1;
     }
 
-    private void printChooseMessage(){
-        LOGGER.info("Hello Admin, what type of server is this? " +
-                "\n1 - Main Server" +
-                "\n2 - Backup Server " +
-                "\n> ");
-    }
 
     /**
      * Rebinds main server
@@ -151,11 +141,11 @@ public class Server {
         }
     }
 
-    public Server(String[] args){
+    public Server(String[] args) {
         try {
-            String registryIP   = args[0];
+            String registryIP = args[0];
             String registryPort = args[1];
-            String serviceName  = args[2];
+            String serviceName = args[2];
             contextRMI = new SetupContextRMI(this.getClass(), registryIP, registryPort, new String[]{serviceName});
         } catch (RemoteException e) {
             LOGGER.severe(e.toString());
@@ -187,6 +177,6 @@ public class Server {
     }
 
     public void setServerRI(ServerRI serverRI) {
-        this.serverRI =  serverRI;
+        this.serverRI = serverRI;
     }
 }

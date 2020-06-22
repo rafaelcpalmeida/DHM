@@ -48,11 +48,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
 
 
     /**
-     * Create a factory, the opens 2 channels (recv and send),
-     * then calls the callback to handle recv and send methods.
-     *
-     * @param id        of this worker
-     * @param user      that this worker belongs
+     * Cria canais de comunicação com a Task
      */
     public Worker(int id, User user, String taskOwner) throws IOException, TimeoutException {
         this.taskOwner = taskOwner;
@@ -69,33 +65,31 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         this.listenToGeneral();
     }
     /**
-     * Creates the name of the send , recv and exchange names
-     * @param taskOwner for queue's names
+     * Declaração das Queues
      */
     private void createQueueNamesAndExchange(String taskOwner){
-        this.recvDirectQueue = taskOwner + "_task_workers_queue";
-        this.sendQueue = taskOwner + "_task_recv_queue";
-        this.exchangeName = taskOwner + "_exchange";
+        this.recvDirectQueue = taskOwner + "_toWorkersQueue";
+        this.sendQueue = taskOwner + "_fromWorkersQueue";
+        this.exchangeName = taskOwner + "_fannout";
     }
 
     /**
-     * Create the connection to rabbitmq and create channels
-     * @throws IOException files
-     * @throws TimeoutException timeout
+     * Criação de canais
+     * Ligação ao Rabbit
      */
     private void createChannels() throws IOException, TimeoutException {
-        // Create a connection to rabbitmq
+        // Ligação ao Rabbit
         Rabbit rabbit = new Rabbit();
         ConnectionFactory factory = rabbit.connect();
-        // Create the connections
+        // Criação de canais
         Connection connection=factory.newConnection();
         this.sendChannel = connection.createChannel();
         this.recvGeralChannel = connection.createChannel();
         this.recvDirectChannel = connection.createChannel();
     }
+
     /**
-     * Declare all the queues for the task and the exchange
-     * @throws IOException opening files
+     * Declaração de Queues e Exchange
      */
     private void declareQueuesAndExchange() throws IOException {
         // declare queues
@@ -108,21 +102,15 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     }
 
     /**
-     * Create a callback function that listens to the task queue
-     * and processes that info.
+     * Função para receber informação da Task (Callback)
      */
     private void listenToDirect() {
         try {
             DeliverCallback work = (consumerTag, delivery) -> {
                 this.workingThread = Thread.currentThread();
-                //LOGGER.info("W#" + this.id + " working ...");
-                //LOGGER.info("deserializatin taskstate");
                 byte[] bytes = delivery.getBody();
                 TaskState taskState = (TaskState) SerializationUtils.deserialize(bytes);
                 this.original = taskState.getStringGroup();
-                //LOGGER.info("I'm currently on thread + " +  Thread.currentThread().getName());
-                //LOGGER.info("This is this thread delivery tag " + delivery.getEnvelope().getDeliveryTag());
-                //LOGGER.info(taskState.toString());
                 this.workerThread = new WorkerThread(taskState,this);
                 this.workerThread.setDeliveryTag(delivery.getEnvelope().getDeliveryTag());
                 this.workerThread.run();
@@ -138,9 +126,8 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     }
 
     /**
-     * Send an HashState to the task to inform about something
-     * @param match if found a match
-     * @param done if done with all the StringGroup
+     * Envio de informações para a Task
+     * Informa estado atual da tarefa
      */
     private void sendHashState(boolean match, boolean done, String word, String hash){
         int originalCeiling = this.original.getCeiling();
@@ -155,10 +142,9 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     }
 
     /**
-     * Send a confirmation that the StringGroup is done!
-     * @param match if has a match
+     * Informação de conclusão de tarefa
      */
-    public void doneWithStringGroup(boolean match, long deliveryTagThread){
+    public void workerFinished(boolean match, long deliveryTagThread){
         this.sendHashState(match,true,"","");
         //LOGGER.info("Sending ack and hash state w/ deliveryTag " + deliveryTagThread);
         try {
@@ -173,27 +159,18 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         this.sendHashState(true,false,word,hash);
     }
 
-    /**
-     * When the worker is new and has now Hashes to compare
-     */
-    private void needHashes(){
-        HashSate hashSate = new HashSate(WorkerStatus.NEED_HASHES,this.id);
-        this.publish(hashSate);
-    }
 
     /**
-     * Create a callback function that listens to the general fanout
-     * and processes that info.
+     * Método para receber informações da Exchange (Fannout)
      */
     private void listenToGeneral() {
         try {
             DeliverCallback listen = (consumerTag, delivery) -> {
-                //LOGGER.info("[RECV][W#" + this.id + "][" + this.generalQueue + "]" + " Received General STATE'");
                 byte[] bytes = delivery.getBody();
                 GeneralState generalState = (GeneralState) SerializationUtils.deserialize(bytes);
-                //LOGGER.info(generalState.toString());
+                //Lixo
+                //Resume
                 if(generalState.isResume()){
-                    //resuming working after being paused
                     LOGGER.info("Going to resume the work !!!");
                     this.pause=false;
                     synchronized(lock) {
@@ -201,27 +178,28 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
                     }
                     return;
                 }
+                //Pause
                 if(generalState.isPause()) {
                     LOGGER.info("Paused state received, going to stop work");
                     this.pause = true;
                     return;
                 }
+                //Trabalho Concluido
                 if(generalState.getHashes() == null){
-                    // No more hashes to be found = no more work to do
                     this.workingThread.interrupt();
                     this.workerThread = null;
-                    LOGGER.info("Thread killed because there are no more hashes :(");
+                    LOGGER.info("Killing Thread, job done!");
                     Thread.currentThread().interrupt();
                     this.stop = true;
                     return;
                 }
+                //Quando o worker é novo
+                //Recebe dados para trabalhar
                 if(this.hashes.isEmpty()){
-                    // If the hashes arraylist is empty , then the worker just got join
-                    // Starts listen to the direct queue
                     this.hashType = generalState.getHashType();
-                    this.populateWordsList(generalState.getWordsUrl());     // populates the words ArrayList
+                    this.populateWordsList(generalState.getWordsUrl());
                     this.hashes = generalState.getHashes();
-                    this.listenToDirect();                  // when it updates the hash list , then the worker can work
+                    this.listenToDirect();
                     return;
                 }
                 this.hashes = generalState.getHashes();
@@ -230,18 +208,17 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
             });
 
         } catch (Exception e) {
-            LOGGER.severe("[ERROR] Exception in worker.listen()");
+            LOGGER.severe("[ERROR] Exception in worker.listenToGeneral()");
             LOGGER.severe(e.getMessage());
         }
     }
 
     /**
-     * Populates the words ArrayList with a given URL
+     * Vai buscar ao URL as palavras e grava num array
      * @param wordsUrl URL that has all the words to hash and compare
      */
     private void populateWordsList(String wordsUrl) {
         URL url = null;
-        LOGGER.info("Populating words list array ...");
         try {
             url = new URL(wordsUrl);
             BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
@@ -255,47 +232,48 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         } catch (IOException e) {
             e.printStackTrace();
         }
-        LOGGER.info("Done populating word lists!");
+        LOGGER.info("StringGroup ready");
     }
 
     /**
-     * Sends an HashState to the sending queue
-     *
+     * Envia HashState pela Queue de retorno à Task
      */
     public void publish(HashSate hashSate) {
         try {
             byte[] hashStateBytes =  SerializationUtils.serialize(hashSate);
             this.sendChannel.basicPublish("", this.sendQueue, null, hashStateBytes);
-            //LOGGER.info("[SEND][W#" + this.id + "]" + " Sent hashing state'");
         } catch (Exception e) {
             LOGGER.severe("[ERROR] Exception in worker.publish()");
             LOGGER.severe(e.getMessage());
         }
     }
 
-    public String getTaskOwner() {
-        return taskOwner;
-    }
-
+    /**
+     * Devolve Queue do Fannout
+     */
     public String getGeneralQueue() throws RemoteException {
         return this.generalQueue;
     }
 
     /**
-     * Method to print a message sent by the Task ( server )
-     * @param message sent by the Task
+     * Imprime mensagens do servidor
      */
     @Override
     public void printServerMessage(String message) throws RemoteException {
         LOGGER.info("[SERVER MESSAGE] " + message);
     }
 
+    /**
+     * Dono do worker
+     */
     @Override
     public String getOwnerName() throws RemoteException {
         return this.owner.getUsername();
     }
 
-
+    /**
+     * ID do worker
+     */
     public int getId() throws RemoteException {
         return id;
     }

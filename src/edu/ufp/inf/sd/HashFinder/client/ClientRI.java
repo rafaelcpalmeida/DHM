@@ -7,7 +7,7 @@ import java.rmi.RemoteException;
 
 public interface ClientRI extends Remote {
     void attachNewServer(ServerRI server) throws RemoteException;
-    void isAlive() throws RemoteException;
+    void checkIfClientOk() throws RemoteException;
     void sendToken(String token) throws RemoteException;
     void sendMessage(String msg) throws RemoteException;
 }

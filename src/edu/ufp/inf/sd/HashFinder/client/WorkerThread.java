@@ -39,9 +39,8 @@ public class WorkerThread implements Runnable {
     public void run() {
         try {
             if(!this.worker.isStop()){
-                LOGGER.info("Populating string group!");
-                this.populateStringGroupWords();                    // populate this.words with the words from @StringGroup
-                LOGGER.info("Beggining working ....");
+                this.divideStringGroup();
+                LOGGER.info("Thread starting ....");
                 this.work();
             }
         } catch (RemoteException e) {
@@ -65,35 +64,28 @@ public class WorkerThread implements Runnable {
             String digest = this.byteToString(hashByte);
             if (this.hashes.contains(digest)) {
                 // Match done!
-                LOGGER.info("Worker#" + this.worker.getId() + " had a match w/ word: " + word + " w/ hash: "
+                LOGGER.info("Worker#" + this.worker.getId() + " says " + word + " = "
                         + digest);
                 this.worker.setCurrentLine(this.currentLine);
                 this.worker.match(word,digest,this.deliveryTag);
             }
             this.currentLine++;
         }
-        this.worker.doneWithStringGroup(false,this.deliveryTag);
+        this.worker.workerFinished(false,this.deliveryTag);
     }
 
 
     /**
-     * Populates the ArrayList of words with only the words from the designated
-     * StringGroup sent by the TaskState
+     * Extrai do StringGroup as palavras designadas para o worker
      */
-    private void populateStringGroupWords() {
-        //LOGGER.info("Populating thread string group words...");
+    private void divideStringGroup() {
         StringGroup stringGroup = this.taskState.getStringGroup();
         this.words = this.worker.getWords().subList(stringGroup.getCeiling(),
                 stringGroup.getCeiling() + stringGroup.getDelta());
     }
 
-    public void setTaskState(TaskState taskState) {
-        this.taskState = taskState;
-    }
-
     /**
-     * @param bytes w/ the digest
-     * @return bytes in string
+     * Converte de bytes para string
      */
     private String byteToString(byte[] bytes){
         StringBuilder hexString = new StringBuilder();
@@ -106,6 +98,7 @@ public class WorkerThread implements Runnable {
     /**
      * Check if lock is locked, if its locked , then wait until
      * its unlocked
+     * Lixo
      */
     public synchronized void allowPause() {
         synchronized(this.worker.getLock()) {

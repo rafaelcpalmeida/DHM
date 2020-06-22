@@ -38,38 +38,24 @@ public class Task {
     private DBMockup db;
     private boolean paused;
 
-    /**
-     * @param hashType  ex. MD5 , SHA1 , etc ...
-     * @param coins     remaining
-     * @param digests   array with the hashes
-     * @param deltaSize amount of lines a single worker need to make in each StringGroup
-     */
     public Task(AvailableDigestAlgorithms hashType, int coins, ArrayList<String> digests, int deltaSize, TaskGroup taskGroup) throws IOException, TimeoutException {
-        // TODO change hashType to enum
         this.db = taskGroup.getDb();
         this.wordsFound = new HashMap<>();
         this.hashType = hashType;
         this.coins = coins;
         this.digests = digests;
         this.taskGroup = taskGroup;
-        // TODO break me
-        // Need to populate the free string group
         populateFreeStringGroup(deltaSize);
         User user = this.taskGroup.getOwner();
-        // Create the recv and send queues names
         this.createQueueNamesAndExchange(user);
-        // Creates all the channels to use
         this.createChannels();
-        // Declare queues and exchange names
         this.declareQueuesAndExchange();
-        // Populate the workers queues with TaskSates
         this.populateWorkersQueue();
-        // Listen to workers from workers queue
         this.listen();
     }
 
     /**
-     * Populates the worker's queue with @TaskState instances
+     * Envia dados para a queue
      */
     private void populateWorkersQueue() {
         LOGGER.info("Populating workers queue ...");
@@ -87,13 +73,14 @@ public class Task {
      * @param user for queue's names
      */
     private void createQueueNamesAndExchange(User user) {
-        this.sendQueue = user.getUsername() + "_task_workers_queue";
-        this.recvQueue = user.getUsername() + "_task_recv_queue";
-        this.exchangeName = user.getUsername() + "_exchange";
+        this.sendQueue = user.getUsername() + "_toWorkesQueue";
+        this.recvQueue = user.getUsername() + "_fromWorkersQueue";
+        this.exchangeName = user.getUsername() + "_fannout";
     }
 
     /**
-     * Create the connection to rabbitmq and create channels
+     * Liga-se oa Rabbit
+     * Cria canais
      *
      * @throws IOException      files
      * @throws TimeoutException timeout
@@ -109,11 +96,7 @@ public class Task {
         this.sendGeralChannel = connection.createChannel();
     }
 
-    /**
-     * Declare all the queues for the task and the exchange
-     *
-     * @throws IOException opening files
-     */
+
     private void declareQueuesAndExchange() throws IOException {
         // declare queues
         this.sendQueueChannel.queueDeclare(this.sendQueue, true, false, false, null);
@@ -122,17 +105,11 @@ public class Task {
         this.sendGeralChannel.exchangeDeclare(this.exchangeName, BuiltinExchangeType.FANOUT);
     }
 
-    /**
-     * Populates the FreeStringGroup ArrayList with
-     * len = (Number of lines of the file) / deltaSize
-     *
-     * @param deltaSize number of lines for each StringGroup
-     */
     private void populateFreeStringGroup(int deltaSize) {
         this.freeStringGroups = new ArrayList<>();
         this.words = new ArrayList<>();
         URL oracle = null;
-        LOGGER.info("Populating string group array ...");
+        LOGGER.info("Populating string group array...");
         try {
             oracle = new URL(url);
             BufferedReader in = new BufferedReader(new InputStreamReader(oracle.openStream()));
@@ -145,7 +122,6 @@ public class Task {
                     count = 0;
                 }
                 count++;
-                //LOGGER.info(inputLine);
                 this.words.add(inputLine);
                 totalLines++;
             }
@@ -163,8 +139,7 @@ public class Task {
     }
 
     /**
-     * Adds a worker to DB and calls the method to start
-     * @param worker added
+     * Adiciona worker a BD
      */
     public void addWorker(WorkerRI worker) throws RemoteException {
         LOGGER.info(" Adding worker to queue ...");
@@ -172,48 +147,36 @@ public class Task {
         this.startWorker(worker);
     }
 
-    /**
-     *
-     * @param worker who is starting the work
-     */
     private void startWorker(WorkerRI worker) throws RemoteException {
         worker.start();
         String workerQueue = worker.getGeneralQueue();
         this.publishToQueue(new GeneralState(this.digests,this.paused,this.hashType,this.url,false),workerQueue);
     }
     /**
-     * Create a callback function that listens to the task queue
-     * and processes that info.
+     * Método de escuta a informação vinda dos workers
      */
     private void listen() {
         try {
             DeliverCallback listen = (consumerTag, delivery) -> {
-                // TODO make the callback to the received message from the worker queue
-                //String message = new String(delivery.getBody(), "UTF-8");
-                //LOGGER.info("[RECV][TASK]" + " Received message from worker");
                 byte[] bytes = delivery.getBody();
                 HashSate hashSate = (HashSate) SerializationUtils.deserialize(bytes);
-                //LOGGER.info(hashSate.toString());
                 switch (hashSate.getStatus()){
                     case NEED_HASHES:
                         break;
                     case DONE:
-                        //LOGGER.info("received a dont w/ string group  ");
-                        LOGGER.info("Received a DONE state ...");
+                        LOGGER.info("HashState: Job done");
                         if(this.giveCoins(1,hashSate.getOwnerName()))
                             this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 1 coin!");
                         break;
                     case MATCH:
-                        LOGGER.info("Received a MATCH for " + hashSate.getHash() + "w/ word " + hashSate.getWord());
+                        LOGGER.info("Received a MATCH for " + hashSate.getHash() + "with word " + hashSate.getWord());
                         this.updateTaskMatches(hashSate.getWord(),hashSate.getHash());
                         if(this.giveCoins(10,hashSate.getOwnerName()))
                             this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 10 coins!");
                         break;
                     case DONE_AND_MATCH:
-                        // TODO DONE_AND_MATCH
                         break;
                     default:
-                        // TODO default
                         break;
                 }
             };
@@ -226,10 +189,7 @@ public class Task {
     }
 
     /**
-     * Sends a message to a worker
-     * @param workerId worker we want to send
-     * @param ownerName user
-     * @param message we want to send
+     * Envia mensagem para worker
      */
     private void sendMessage(int workerId, String ownerName, String message) {
         try {
@@ -238,19 +198,16 @@ public class Task {
                 workerRI.printServerMessage(message);
                 return;
             }
-            LOGGER.warning("Couldn't send a message to worker because DB returned null to WorkerRI stub.");
+            LOGGER.warning("Error sending message to worker");
         } catch (RemoteException e) {
-            LOGGER.severe("Couldn't send a message to worker due to RemoteException getting the worker's stub.");
+            LOGGER.severe("Error sending message to worker");
         }
 
     }
 
     /**
-     * Gives coins a Worker's user and removes from the TaskGroup
-     * owner
-     * @param amount given to the user
-     * @param username who we want to give
-     * @return if the transaction was successfull or not
+     * Pagamento do trabalho
+     * Pausa a task caso não haja coins
      */
     private boolean giveCoins(int amount, String username) {
         User user = this.db.getUser(username);
@@ -260,53 +217,45 @@ public class Task {
                 this.removeCoins(amount,taskOwner);
                 this.db.giveMoney(user,amount);
             } catch (TaskOwnerRunOutOfMoney taskOwnerRunOutOfMoney) {
-                LOGGER.warning("Owner run out of coins!!! Pausing task !!");
-                this.taskGroup.getOwnerSession().sendMessage("You run out of coins , pls buy some otherwise the task won't resume.");
+                LOGGER.warning("Owner run out of coins!!! Pausing task!!");
+                this.taskGroup.getOwnerSession().sendMessage("Buy coins to continue Task");
                 this.pauseTask();
                 return false;
             }
-            LOGGER.info("Giving " + amount + " coins to " + username + " and removing from " + taskOwner.getUsername() + " balance!");
             return true;
         }
-        LOGGER.warning("Username was not found to give coins!");
         return false;
     }
 
     /**
-     * Check if can pause task, if afirmative
-     * then pauses
-     * @return Message of the operation
+     * Pausa todas as tasks
      */
     public String pauseAllTask(){
         if(!this.paused){
-            // not paused yet
             this.pauseTask();
             return "Task has been paused!";
         }
-        return "Task is paused already u dumb";
+        return "Task already paused";
     }
 
     /**
-     * Check if can pause task, if afirmative
-     * then pauses
-     * @return Message of the operation
+     * Resume Tasks
      */
     public String resumeAllTask(){
         if(this.paused){
             // not paused yet
             User taskOwner = this.taskGroup.getOwner();
             if(this.taskGroup.getDb().getCoins(taskOwner) == 0){
-                // no coins to resume task
-                return "You have no coins u broke a** b**ch , pls buy some";
+                return "Insufficient coins do start";
             }
             this.resumeTask();
             return "Task has been resumed!";
         }
-        return "Task is already running :O";
+        return "Task currently running";
     }
 
     /**
-     * Pauses task
+     * Pausa uma task
      */
     private void pauseTask() {
         GeneralState generalState = new GeneralState(null,true,null,"",false);
@@ -314,6 +263,9 @@ public class Task {
         this.paused = true;
     }
 
+    /**
+     * Resume uma task
+     */
     private void resumeTask(){
         GeneralState generalState = new GeneralState(null,false,null,"",true);
         this.publishToAllWorkers(generalState);
@@ -322,35 +274,28 @@ public class Task {
 
 
     /**
-     * Remove money from a user
-     * @param amount beeing taken
-     * @param user we want to take money of
+     * Tird dinheiro
      */
     private void removeCoins(int amount, User user) throws TaskOwnerRunOutOfMoney {
         this.db.takeMoney(user,amount);
     }
 
     /**
-     * Updates all the arraylists when a new match is received
-     * and notifies all workers
-     * @param digestFound hash found
-     * @param wordFound found that is the plain text of @digest
+     * Método usado para atulizar ficheiro de Hashes quando encontradas correspondências
      */
     private void updateTaskMatches(String wordFound, String digestFound) throws IOException {
         this.digests.remove(digestFound);
         this.wordsFound.put(digestFound,wordFound);
         GeneralState generalState = new GeneralState(this.digests,false,this.hashType,this.url,false);
         if(this.digests.isEmpty()){
-            // All hashes found!
             this.endTask();
             return;
         }
-        //LOGGER.info(generalState.toString());
         this.publishToAllWorkers(generalState);
     }
 
     /**
-     * Send to all workers a GeneralState and deletes the channel
+     * Envia informação aos workes e apaga o canal
      */
     protected void endTask() throws IOException {
         LOGGER.info("Ending task!!");
@@ -361,15 +306,12 @@ public class Task {
     }
 
     /**
-     * Send a GeneralState to a specific worker queue
-     * @param generalState
-     * @param workerQueue
+     * Envia informação aos workers
      */
     private void publishToQueue(GeneralState generalState, String workerQueue){
         try {
             byte[] generalStateBytes =  SerializationUtils.serialize(generalState);
             this.sendQueueChannel.basicPublish("", workerQueue, null, generalStateBytes);
-            //LOGGER.info("[SENT] New TaskState to workers queues ");
         } catch (Exception e) {
             LOGGER.severe("[ERROR] Exception in task.publishToWorkersQueue()");
             LOGGER.severe(e.getMessage());
@@ -377,9 +319,7 @@ public class Task {
     }
 
     /**
-     * Sends a TaskState to workers queue
-     *
-     * @param message being sent to the workers queue
+     * Envia TaskState
      */
     private void publishToWorkersQueue(byte[] message) {
         try {
@@ -392,9 +332,7 @@ public class Task {
     }
 
     /**
-     * Sends a GeneralState to the all the workers via fanout
-     *
-     * @param generalState new generalState of the task
+     * Envia fannout
      */
     public void publishToAllWorkers(GeneralState generalState) {
         try {

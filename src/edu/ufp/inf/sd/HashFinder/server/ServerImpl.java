@@ -31,9 +31,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Start working !
-     * Basically  , checks every 50 ms if any client or backup server
-     * is not working. If not , remove it from the list.
+     * Rafa
      */
     private void startThread() {
         new Thread(() -> {
@@ -50,7 +48,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
                     ClientRI clientRI = entry.getKey();
 
                     try {
-                        clientRI.isAlive();
+                        clientRI.checkIfClientOk();
                     } catch (Exception ignored) {
                         System.out.println("Client is out, removing!");
                         toRemove.add(clientRI);
@@ -69,7 +67,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
 
                 for (ServerRI serverRI : this.backupServersRIS) {
                     try {
-                        serverRI.isAlive();
+                        serverRI.checkIfClientOk();
                     } catch (Exception ignored) {
                         System.out.println("Backup server is out, removing!");
                         toRemoveServers.add(serverRI);
@@ -90,6 +88,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
 
     /**
      * Sets if this server can run and be Main
+     * Rafa
      * @param b boolean if this server can run
      */
     @Override
@@ -100,8 +99,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Notifies all clients and servers that this server is the Main server
-     * I'm the boss now
+     * Envia estada a dizer quem é o server
      */
     private void notifyAllClients() {
         for (Map.Entry<ClientRI, String> entry : this.clientRIS.entrySet()) {
@@ -121,12 +119,10 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Used to check if the server is Alive, if a exception is throwned
-     * than is not alive.
-     * @throws RemoteException if is not Alive
+     * Verifica se o server está ok
      */
     @Override
-    public void isAlive() throws RemoteException {
+    public void checkIfClientOk() throws RemoteException {
     //nothing
     }
 
@@ -136,8 +132,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Removes a backup server from queue
-     * @param serverRI being removed form backup servers queue
+     * Elimina o servidor de backup
      */
     private void removeBackupServer(ServerRI serverRI) throws RemoteException{
         LOGGER.info("Server exists: " + this.backupServersRIS.contains(serverRI));
@@ -153,8 +148,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Changes ID of server
-     * @param id new Id of the server
+     * Altera ID do server
      */
     @Override
     public void changeId(int id) throws RemoteException {
@@ -162,8 +156,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Detach client from clients list
-     * @param clientRI client being detached from clients list
+     * Elimina cliente da lista de clientes
      */
     @Override
     public void detach(ClientRI clientRI) throws RemoteException {
@@ -172,8 +165,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Attach client to clients list
-     * @param clientRI client being attached to clients list
+     * Adiciona cliente à lista de clientes
      */
     @Override
     public void attach(ClientRI clientRI) throws RemoteException {
@@ -187,7 +179,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Create new thread to update all Servers and send all the info this server has
+     * Thread para enviar informação aos outros servers
      */
     public void updateBackupServers() {
         new Thread(() -> {
@@ -201,9 +193,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Adds a server to the tail of the backup servers queue
-     * @param backupServerRI added to the backup servers queue
-     * @return the id from the queue the server is right now
+     * Seleciona o próximo servidor
      */
     @Override
     public int attachBackupServer(ServerRI backupServerRI) throws RemoteException {
@@ -219,9 +209,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Copies info from main server and updates the server who call this method
-     * @param clientRIS all updated clients
-     * @param dbMockup  db updated
+     * Copia informação para os outros servidores
      */
     @Override
     public void copyInfo(HashMap<ClientRI, String> clientRIS,DBMockup dbMockup) throws RemoteException {
@@ -231,8 +219,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     }
 
     /**
-     * Sends an updated list w/ all the backup servers
-     * @param backupServersRIS list w/ all the backup servers
+     * Lista dos servidores de backup
      */
     @Override
     public void copyBackupServers(ArrayList<ServerRI> backupServersRIS) throws RemoteException {

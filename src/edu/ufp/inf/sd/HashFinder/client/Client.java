@@ -2,6 +2,7 @@ package edu.ufp.inf.sd.HashFinder.client;
 
 import edu.ufp.inf.sd.HashFinder.server.*;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
+
 import java.io.IOException;
 import java.rmi.NotBoundException;
 import java.rmi.Remote;
@@ -15,29 +16,38 @@ import java.util.logging.Logger;
 
 public class Client {
     private static final Logger LOGGER;
+
     static {
         System.setProperty("java.util.logging.SimpleFormatter.format",
                 "\033[32m%1$tF %1$tT\033[39m \u001b[33m[%4$-7s]\u001b[0m %5$s %n");
         LOGGER = Logger.getLogger(Client.class.getName());
     }
-    //make run-client PACKAGE_NAME=edu.ufp.inf.sd.HashFinder.client.Client SERVICE_NAME=DhmService
+
     private SetupContextRMI contextRMI;
     private AuthFactoryRI authFactoryRI;
     private ServerRI serverRI;
     private ClientImpl client;
     private Guest user;
 
+
+    /**
+     * RMI
+     */
     public Client(String[] args) {
         try {
-            String registryIP   = args[0];
+            String registryIP = args[0];
             String registryPort = args[1];
-            String serviceName  = args[2];
+            String serviceName = args[2];
             contextRMI = new SetupContextRMI(this.getClass(), registryIP, registryPort, new String[]{serviceName});
         } catch (RemoteException e) {
             LOGGER.severe(e.getMessage());
         }
     }
 
+
+    /**
+     * RMI
+     */
     private Remote lookupService() {
         try {
             Registry registry = contextRMI.getRegistry();
@@ -64,13 +74,17 @@ public class Client {
 
     }
 
-    private AuthFactoryRI getUpdatedAuthFactoryRI(){
-        for(int attempt = 0 ; attempt < 5 ; attempt++){
+
+    /**
+     * Por causa do backup server??
+     */
+    private AuthFactoryRI getUpdatedAuthFactoryRI() {
+        for (int attempt = 0; attempt < 5; attempt++) {
             try {
-                AuthFactoryRI authFactory= this.client.getServerRI().getAuthFactory(); // get the updated ServerRI
+                AuthFactoryRI authFactory = this.client.getServerRI().getAuthFactory();
                 LOGGER.info("new factory received");
                 return authFactory;
-            }catch (RemoteException e){
+            } catch (RemoteException e) {
                 LOGGER.warning("Could not get connection to Main server, attempting again ...");
             }
             try {
@@ -79,43 +93,46 @@ public class Client {
                 LOGGER.severe(e.toString());
             }
         }
-        LOGGER.severe("Server request timeout w/ 5 attempts , I'mma get the hell outta here. Bye");
+        LOGGER.severe("Server request timeout");
         System.exit(-1);
         return null;
     }
 
-    private AuthSessionRI getUpdatedSessionRI(){
-        LOGGER.info("going to update session");
+    /**
+     * ??????????????'
+     */
+    private AuthSessionRI getUpdatedSessionRI() {
+        LOGGER.info("Updating Session");
         AuthFactoryRI authFactoryRI = this.getUpdatedAuthFactoryRI();
         try {
             LOGGER.info("Returning session ...");
-            return authFactoryRI.login(this.user,this.client);
+            return authFactoryRI.login(this.user, this.client);
         } catch (RemoteException e) {
-            LOGGER.severe("Couldn't login ...");
+            LOGGER.severe("Error logging in");
         }
-        LOGGER.info("Returning null");
         return null;
     }
 
-    private void playSession(AuthSessionRI authSessionRI){
-        try{
+    /**
+     * Verifica a sessão
+     * Em caso de dar Exception altera o servidor
+     */
+    private void playSession(AuthSessionRI authSessionRI) {
+        try {
             if (authSessionRI != null) {
                 LOGGER.info("Session started !");
                 this.chooseOption(authSessionRI);
-            }else {
-                LOGGER.info("Credentials invalid");
+            } else {
+                LOGGER.info("Invalid session");
                 this.playService();
             }
         } catch (RemoteException ex) {
-            LOGGER.severe("EXCEPTION -> "  + ex.toString());
-            LOGGER.severe("Probably the main server is down , going to ask the new backup server");
+            LOGGER.severe("Changing to backup server");
             AuthSessionRI sessionRI = this.getUpdatedSessionRI();
-            if(sessionRI != null){
-                LOGGER.info("session not null!");
+            if (sessionRI != null) {
                 this.playSession(sessionRI);
-            }else{
-                LOGGER.info("session null");
-                LOGGER.severe("Could not get session due to an error in sessionRI , I'm dyyyyyyyyyyying");
+            } else {
+                LOGGER.info("Invalid session");
                 System.exit(-1);
             }
 
@@ -127,49 +144,49 @@ public class Client {
     }
 
     /**
-     * Loggs the user and returns if successfully logged the AuThSessionRI
-     * @return AuthSessionRi needed for all the actions
+     * Login e Registo
+     * Interação com o utilizador
+     *
+     * @return AuthSessionRi Sessão
      */
     private AuthSessionRI loginService() throws RemoteException {
         Scanner scanner = new Scanner(System.in);
-        LOGGER.info("Welcome to our wonderful software , would u rather:\n1 - Register\n2 - Login\n> ");
+        LOGGER.info("1 - Register\n2 - Login\n> ");
         int option = scanner.nextInt();
         scanner.nextLine();
-        switch (option){
+        switch (option) {
             case 1:
-                LOGGER.info("You are about to register our service ...\nPlease tell us the username u want to register:\n> ");
-                String name = scanner.nextLine();
+                LOGGER.info("Choose your username:");
+                String regName = scanner.nextLine();
                 scanner.nextLine();
-                LOGGER.info("Now tell us the password , dont worry , we ain't peeking:\n> ");
-                String passwd = scanner.nextLine();
+                LOGGER.info("Choose your password:\n> ");
+                String regPassw = scanner.nextLine();
                 scanner.nextLine();
-                Guest guest = new Guest(name,passwd);
-                if(this.authFactoryRI.register(guest)){
-                    // success
-                    LOGGER.info("Welcome " + guest.getUsername() + " , ur session is starting ...");
+                Guest guest = new Guest(name, passwd);
+                if (this.authFactoryRI.register(guest)) {
+                    LOGGER.info("Welcome " + guest.getUsername());
                     this.user = guest;
-                    return this.authFactoryRI.login(guest,this.client);
+                    return this.authFactoryRI.login(guest, this.client);
                 }
-                LOGGER.info("Could not register your account :/");
+                LOGGER.info("Error registering");
                 return null;
             case 2:
-                LOGGER.info("username:\n> ");
-                String name2 = scanner.nextLine();
+                LOGGER.info("Username:\n> ");
+                String name = scanner.nextLine();
                 scanner.nextLine();
-                LOGGER.info("password:\n> ");
-                String passwd2 = scanner.nextLine();
+                LOGGER.info("Password:\n> ");
+                String passw = scanner.nextLine();
                 scanner.nextLine();
-                Guest guest2 = new Guest(name2,passwd2);
-                LOGGER.info("Welcome " + guest2.getUsername() + " , ur session is starting ...");
+                Guest guest2 = new Guest(name, passw);
+                LOGGER.info("Welcome " + guest2.getUsername());
                 this.user = guest2;
-                return this.authFactoryRI.login(guest2,this.client);
+                return this.authFactoryRI.login(guest2, this.client);
             default:
                 return this.loginService();
         }
     }
 
     public static void main(String[] args) throws IOException, TimeoutException {
-        //rabbitmqtest();
         if (args != null && args.length < 3) {
             System.exit(-1);
         } else {
@@ -187,63 +204,62 @@ public class Client {
 
 
     /**
-     * Interactive menu for user to choose all options
-     * @param authSessionRI needed for all actions
+     * Menu principal
      */
     private void chooseOption(AuthSessionRI authSessionRI) throws IOException, TimeoutException {
-        while(true){
+        while (true) {
             Scanner scanner = new Scanner(System.in);
-            System.out.print("Hello , what do u want to do? " +
-                    "\n1 - print task groups" +
-                    "\n2 - create task group " +
-                    "\n3 - join task group " +
-                    "\n4 - add worker to task " +
-                    "\n5 - how much coins do I have?" +
-                    "\n6 - buy coins w/ bitcoins " +
-                    "\n7 - pause task " +
-                    "\n8 - resume task " +
-                    "\n9 - delete task group " +
-                    "\n10 - print token " +
-                    "\n11 - logout " +
+            System.out.print("1-List TaskGroups" +
+                    "\n2-Create TaskGroup" +
+                    "\n3-Join TaskGroup" +
+                    "\n4-Remove TaskGroup" +
+                    "\n5-Wallet" +
+                    "\n6-Buy cois" +
+                    "\n7-Attach worker" +
+                    "\n8-Resume task " +
+                    "\n7-Pause task " +
+
+                    "\n10-print token " +
+                    "\n11-logout " +
                     "\n> ");
             int option1 = scanner.nextInt();
             scanner.nextLine();
-            switch (option1){
+            switch (option1) {
                 case 1:
                     LOGGER.info(authSessionRI.printTaskGroups(this.client.getHashedToken()));
-                    break;
+                    break
                 case 2:
-                    LOGGER.info(authSessionRI.createTaskGroup(this.client.getHashedToken()));
-                    break;
-                case 3:
                     LOGGER.info("Which task u want to join?\n> ");
                     String option2 = scanner.nextLine();
                     scanner.nextLine();
-                    authSessionRI.joinTaskGroup(option2,this.client.getHashedToken());
+                    authSessionRI.joinTaskGroup(option2, this.client.getHashedToken());
+                    break;
+                case 3:
+                    LOGGER.info(authSessionRI.createTaskGroup(this.client.getHashedToken()));
                     break;
                 case 4:
-                    LOGGER.info("Which task u want to join ur worker?\n> ");
-                    String taskOwner = scanner.nextLine();
-                    scanner.nextLine();
-                    this.createWorker(authSessionRI,taskOwner);
+                    LOGGER.info(authSessionRI.deleteTaskGroup(this.client.getHashedToken()));
                     break;
                 case 5:
                     LOGGER.info(authSessionRI.getCoins(this.client.getHashedToken()));
                     break;
                 case 6:
-                    LOGGER.info("How much do u wanna buy? only bitcoin...\n> ");
+                    LOGGER.info("Amount to buy\n> ");
                     String amountToBuy = scanner.nextLine();
                     scanner.nextLine();
-                    authSessionRI.buyCoins(Integer.parseInt(amountToBuy),this.client.getHashedToken());
+                    authSessionRI.buyCoins(Integer.parseInt(amountToBuy), this.client.getHashedToken());
                     break;
                 case 7:
-                    LOGGER.info(authSessionRI.pauseTask(this.client.getHashedToken()));
+                    LOGGER.info("Task ID to join\n> ");
+                    String taskOwner = scanner.nextLine();
+                    scanner.nextLine();
+                    this.createWorker(authSessionRI, taskOwner);
                     break;
                 case 8:
                     LOGGER.info(authSessionRI.resumeTask(this.client.getHashedToken()));
                     break;
                 case 9:
-                    LOGGER.info(authSessionRI.deleteTaskGroup(this.client.getHashedToken()));
+                    LOGGER.info(authSessionRI.pauseTask(this.client.getHashedToken()));
                     break;
                 case 10:
                     LOGGER.info("ur token -> " + this.client.getToken());
@@ -259,12 +275,11 @@ public class Client {
     }
 
     /**
-     * Creates a new worker who has 1 thread
-     * @param authSessionRI with all the methods from the session
-     * @param taskOwner owner's name
+     * Cria 1 worker com 1 thread
+     *
      */
     private void createWorker(AuthSessionRI authSessionRI, String taskOwner) throws IOException, TimeoutException {
-        Worker worker = new Worker(authSessionRI.getUser().getAmountOfWorkers() + 1,authSessionRI.getUser(),taskOwner);
-        authSessionRI.addWorkerToTask(taskOwner,worker,this.client.getHashedToken());
+        Worker worker = new Worker(authSessionRI.getUser().getAmountOfWorkers() + 1, authSessionRI.getUser(), taskOwner);
+        authSessionRI.addWorkerToTask(taskOwner, worker, this.client.getHashedToken());
     }
 }

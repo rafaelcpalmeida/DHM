@@ -10,24 +10,17 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-/**
- * Simulates a BD , with singleton pattern
- * Only 1 instance of DBMockup exists and it's
- * static.
- */
+
 public class DBMockup implements Serializable {
     private static DBMockup dbMockup = null;
-    private HashMap<User, AuthSessionRI> sessions;   // User -> session
-    private HashMap<User, String> users;             // User -> passw
-    private HashMap<User, TaskGroup> taskgroups;     // User -> taskgroup
-    private HashMap<Task, ArrayList<Worker>> tasks;             // Task -> user.worker
+    private HashMap<User, AuthSessionRI> sessions;
+    private HashMap<User, String> users;
+    private HashMap<User, TaskGroup> taskgroups;
+    private HashMap<Task, ArrayList<Worker>> tasks;
     private HashMap<User,Integer> userCoins;
     private HashMap<User, ArrayList<WorkerRI>> userWorkers;
 
-    /**
-     * constructor , private , only getInstance()
-     * method can access it.
-     */
+
     private DBMockup() {
         sessions = new HashMap<User, AuthSessionRI>();
         users = new HashMap<>();
@@ -47,26 +40,24 @@ public class DBMockup implements Serializable {
     }
 
     /**
-     * @param user being added to users
-     * @param passwd password
+     * Insere user
      */
     public synchronized void insert(User user, String passwd) {
         if(!this.users.containsKey(user)){
             this.users.put(user,passwd);
-            this.userCoins.put(user,0); // adds 0 coins to user
+            this.userCoins.put(user,0);
         }
     }
 
     /**
-     * @param task being added to tasks
+     * Insere Task
      */
     public void insert(Task task) {
         if(!this.tasks.containsKey(task)) this.tasks.put(task,new ArrayList<Worker>());
     }
 
     /**
-     * @param worker being added to tasks
-     * @param task key
+     * Insere worker na task
      */
     public void insert(Worker worker, Task task) {
         ArrayList<Worker> workers=this.tasks.get(task);
@@ -74,20 +65,21 @@ public class DBMockup implements Serializable {
     }
 
     /**
-     * @param sessionRI being added to sessions
-     * @param user key
+     * Insere sessão
      */
     public void insert(AuthSessionRI sessionRI, User user) {
         if(!this.sessions.containsKey(user)) this.sessions.put(user,sessionRI);
     }
 
+    /**
+     * Atualiza sessão
+     */
     public void update(AuthSessionRI sessionRI, User user){
         if(this.sessions.containsKey(user)) this.sessions.put(user,sessionRI);
     }
 
     /**
-     * @param taskGroup being added to taskgroups
-     * @param user key
+     * Insere TaskGroup
      */
     public synchronized void insert(TaskGroup taskGroup, User user) {
         if(!this.taskgroups.containsKey(user)) this.taskgroups.put(user,taskGroup);
@@ -95,21 +87,22 @@ public class DBMockup implements Serializable {
 
 
     /**
-     * Gives money to user
-     * @param user giving the money
-     * @param quantity amount of money
+     * Carrega dinheiro
      */
     public void giveMoney(User user, int quantity){
         if(this.users.containsKey(user)){
-            // The user exists
             this.setUserCoins(user,this.getCoins(user) + quantity);
         }
     }
+
 
     public void setUserCoins(User user,int value){
         this.userCoins.put(user,value);
     }
 
+    /**
+     * Verifica se user existe
+     */
     public boolean exists(Guest guest){
         for(User user : this.users.keySet()){
             if(user.getUsername().compareTo(guest.getUsername()) == 0){
@@ -147,6 +140,9 @@ public class DBMockup implements Serializable {
         this.sessions.remove(user);
     }
 
+    /**
+     * Retira dinheiro quando são efetuadas transações
+     */
     public void takeMoney(User user, int amount) throws TaskOwnerRunOutOfMoney {
         if(this.users.containsKey(user)){
             // The user exists
@@ -167,9 +163,7 @@ public class DBMockup implements Serializable {
     }
 
     /**
-     * Adds a worker to the arraylist of that user's worker
-     * @param workerRI worker stub
-     * @param user 's worker
+     * Adiciona users ao Worker
      */
     public void insert(WorkerRI workerRI, User user){
         if(!this.userWorkers.containsKey(user)){
@@ -199,8 +193,5 @@ public class DBMockup implements Serializable {
     public void deleteTaskGroup(User user) {
         this.taskgroups.remove(user);
     }
-
-
-    //TODO delete , search
 
 }
