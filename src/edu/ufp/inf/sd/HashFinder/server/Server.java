@@ -16,6 +16,7 @@ public class Server {
     private int id;
     private SetupContextRMI contextRMI;
 
+    private AuthFactoryRI authFactoryRI;
     private ServerRI serverRI;
     private ServerRI backupServerRI;
 
@@ -38,7 +39,7 @@ public class Server {
                     srv.rebindBackupService();
                 }
                 try{
-                    srv.backupServerRI = new ServerImpl(false,srv);
+                    srv.backupServerRI = (ServerRI) new ServerImpl(false,srv);
                 } catch (RemoteException e) {
                     LOGGER.severe(e.toString());
                 }
@@ -113,7 +114,7 @@ public class Server {
         try {
             Registry registry = contextRMI.getRegistry();
             if (registry != null) {
-                serverRI = new ServerImpl(true, null);
+                serverRI = (ServerRI) new ServerImpl(true, null);
                 String serviceUrl = contextRMI.getServicesUrl(0);
                 registry.rebind(serviceUrl, serverRI);
             } else {

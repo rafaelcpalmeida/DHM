@@ -45,11 +45,12 @@ public class Client {
             if (registry != null) {
                 String serviceUrl = contextRMI.getServicesUrl(0);
                 serverRI = (ServerRI) registry.lookup(serviceUrl);
-            } else {
-                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "registry not bound (check IPs). :(");
+                return;
             }
+            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "registry not bound (check IPs). :(");
         } catch (RemoteException | NotBoundException ex) {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, String.valueOf(ex));
+            System.exit(-1);
         }
     }
 
