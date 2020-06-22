@@ -9,4 +9,8 @@ public interface WorkerRI extends Remote {
     int getId() throws RemoteException;
 
     String getGeneralQueue() throws RemoteException;
+
+    void printServerMessage(String message) throws RemoteException;
+
+    String getOwnerName() throws RemoteException;
 }

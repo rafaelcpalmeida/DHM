@@ -2,44 +2,37 @@ package edu.ufp.inf.sd.HashFinder.client;
 
 import edu.ufp.inf.sd.HashFinder.server.AuthFactoryRI;
 import edu.ufp.inf.sd.HashFinder.server.AuthSessionRI;
+import edu.ufp.inf.sd.HashFinder.server.ServerRI;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
-
 import java.io.IOException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javafx.application.Application;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.scene.Scene;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
-
 public class Client {
     private static final Logger LOGGER;
-
     static {
         System.setProperty("java.util.logging.SimpleFormatter.format",
                 "\033[32m%1$tF %1$tT\033[39m \u001b[33m[%4$-7s]\u001b[0m %5$s %n");
         LOGGER = Logger.getLogger(Client.class.getName());
     }
-
+    //make run-client PACKAGE_NAME=edu.ufp.inf.sd.HashFinder.client.Client SERVICE_NAME=HashFinderService
     private SetupContextRMI contextRMI;
     private AuthFactoryRI authFactoryRI;
+    private ServerRI serverRI;
+    private ClientImpl client;
+    private User user;
 
     public Client(String[] args) {
         try {
-            String registryIP = args[0];
+            String registryIP   = args[0];
             String registryPort = args[1];
-            String serviceName = args[2];
+            String serviceName  = args[2];
             contextRMI = new SetupContextRMI(this.getClass(), registryIP, registryPort, new String[]{serviceName});
         } catch (RemoteException e) {
             LOGGER.severe(e.getMessage());
@@ -48,173 +41,205 @@ public class Client {
 
     private void lookupService() {
         try {
-            //Get proxy to rmiregistry
             Registry registry = contextRMI.getRegistry();
-            //Lookup service on rmiregistry and wait for calls
             if (registry != null) {
-                //Get service url (including servicename)
                 String serviceUrl = contextRMI.getServicesUrl(0);
-                //============ Get proxy to HelloWorld service ============
-                authFactoryRI = (AuthFactoryRI) registry.lookup(serviceUrl);
+                serverRI = (ServerRI) registry.lookup(serviceUrl);
             } else {
                 Logger.getLogger(this.getClass().getName()).log(Level.INFO, "registry not bound (check IPs). :(");
             }
         } catch (RemoteException | NotBoundException ex) {
-            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, String.valueOf(ex));
         }
     }
 
     private void playService() {
+        this.authFactoryRI = this.getUpdatedAuthFactoryRI();
         try {
             AuthSessionRI authSessionRI = this.loginService();
-            if (authSessionRI != null) {
-                LOGGER.info("Session started...");
-                this.Menu(authSessionRI);
-            }
-            LOGGER.info("Finishing...");
-        } catch (RemoteException ex) {
-            LOGGER.severe(ex.toString());
-        } catch (IOException | TimeoutException e) {
+            this.playSession(authSessionRI);
+        } catch (RemoteException e) {
             e.printStackTrace();
+        }
+
+    }
+
+    private AuthFactoryRI getUpdatedAuthFactoryRI(){
+        for(int attempt = 0 ; attempt < 5 ; attempt++){
+            try {
+                AuthFactoryRI authFactory= this.client.getServerRI().getAuthFactory(); // get the updated ServerRI
+                LOGGER.info("new factory received");
+                return authFactory;
+            }catch (RemoteException e){
+                LOGGER.warning("Could not get connection to Main server, attempting again ...");
+            }
+            try {
+                TimeUnit.MILLISECONDS.sleep(50);
+            } catch (InterruptedException e) {
+                LOGGER.severe(e.toString());
+            }
+        }
+        LOGGER.severe("Server request timeout w/ 5 attempts , I'mma get the hell outta here. Bye");
+        System.exit(-1);
+        return null;
+    }
+
+    private AuthSessionRI getUpdatedSessionRI(){
+        LOGGER.info("going to update session");
+        AuthFactoryRI authFactoryRI = this.getUpdatedAuthFactoryRI();
+        try {
+            LOGGER.info("Returning session ...");
+            return authFactoryRI.login(this.user);
+        } catch (RemoteException e) {
+            LOGGER.severe("Couldn't login ...");
+        }
+        LOGGER.info("Returning null");
+        return null;
+    }
+
+    private void playSession(AuthSessionRI authSessionRI){
+        try{
+            if (authSessionRI != null) {
+                LOGGER.info("Session started !");
+                this.chooseOption(authSessionRI);
+            }else {
+                LOGGER.info("Credentials invalid");
+                this.playService();
+            }
+        } catch (RemoteException ex) {
+            LOGGER.severe("EXCEPTION -> "  + ex.toString());
+            LOGGER.severe("Probably the main server is down , going to ask the new backup server");
+            AuthSessionRI sessionRI = this.getUpdatedSessionRI();
+            if(sessionRI != null){
+                LOGGER.info("session not null!");
+                this.playSession(sessionRI);
+            }else{
+                LOGGER.info("session null");
+                LOGGER.severe("Could not get session due to an error in sessionRI , I'm dyyyyyyyyyyying");
+                System.exit(-1);
+            }
+
+        } catch (IOException | TimeoutException e) {
+            LOGGER.severe(e.toString());
         }
     }
 
     /**
-     * Logs the user and returns if successfully logged the AuThSessionRI
-     *
+     * Loggs the user and returns if successfully logged the AuThSessionRI
      * @return AuthSessionRi needed for all the actions
      */
     private AuthSessionRI loginService() throws RemoteException {
         Scanner scanner = new Scanner(System.in);
-        LOGGER.info("Menu\n1 - Registar\n2 - Login");
+        LOGGER.info("Welcome to our wonderful software , would u rather:\n1 - Register\n2 - Login\n> ");
         int option = scanner.nextInt();
         scanner.nextLine();
-        String name;
-        String password;
-        switch (option) {
+        switch (option){
             case 1:
-                LOGGER.info("User:");
-                name = scanner.nextLine();
-                LOGGER.info("Password:");
-                password = scanner.nextLine();
-                User user = new User(name, password);
-                if (this.authFactoryRI.register(user)) {
-                    LOGGER.info("Bem Vindo " + user.getUsername());
-                    return this.authFactoryRI.login(user);
+                LOGGER.info("You are about to register our service ...\nPlease tell us the username u want to register:\n> ");
+                String name = scanner.nextLine();
+                scanner.nextLine();
+                LOGGER.info("Now tell us the password , dont worry , we ain't peeking:\n> ");
+                String passwd = scanner.nextLine();
+                scanner.nextLine();
+                User User = new User(name,passwd);
+                if(this.authFactoryRI.register(User)){
+                    // success
+                    LOGGER.info("Welcome " + User.getUsername() + " , ur session is starting ...");
+                    this.user = User;
+                    return this.authFactoryRI.login(User);
                 }
-                LOGGER.info("Erro, utilizador já registado");
+                LOGGER.info("Could not register your account :/");
                 return null;
             case 2:
-                LOGGER.info("User:");
-                name = scanner.nextLine();
-                LOGGER.info("Password:");
-                password = scanner.nextLine();
-                user = new User(name, password);
-                LOGGER.info("Bem Vindo " + user.getUsername());
-                return this.authFactoryRI.login(user);
+                LOGGER.info("username:\n> ");
+                String name2 = scanner.nextLine();
+                scanner.nextLine();
+                LOGGER.info("password:\n> ");
+                String passwd2 = scanner.nextLine();
+                scanner.nextLine();
+                User User2 = new User(name2,passwd2);
+                LOGGER.info("Welcome " + User2.getUsername() + " , ur session is starting ...");
+                this.user = User2;
+                return this.authFactoryRI.login(User2);
             default:
                 return this.loginService();
         }
     }
 
-    public static void main(String[] args) {
-        Thread thread = new Thread(() -> { Application.launch(GUI.class, args); });
-        thread.start();
+    public static void main(String[] args) throws IOException {
         if (args != null && args.length < 3) {
             System.exit(-1);
         } else {
             assert args != null;
-            //1. ============ Setup client RMI context ============
-            Client client = new Client(args);
-            //2. ============ Lookup service ============
-            client.lookupService();
-            //3. ============ Play with service ============
-            client.playService();
+            Client cl = new Client(args);
+            cl.lookupService();
+            cl.start();
         }
+    }
+
+    private void start() throws RemoteException {
+        this.client = new ClientImpl(this.serverRI);
+        this.playService();
     }
 
 
     /**
-     * Menu de interação com Switch Case
-     *
-     * @param authSessionRI objeto da sessão
+     * Interactive menu for user to choose all options
+     * @param authSessionRI needed for all actions
      */
-    private void Menu(AuthSessionRI authSessionRI) throws IOException, TimeoutException {
-        while (true) {
+    private void chooseOption(AuthSessionRI authSessionRI) throws IOException, TimeoutException {
+        while(true){
             Scanner scanner = new Scanner(System.in);
-            System.out.print("1 - Listar TaskGroups disponíveis" +
-                    "\n2 - Criar Task Group " +
-                    "\n3 - Entrar num TaskGroup " +
-                    "\n4 - Adicionar worker a uma Task " +
+            System.out.print("Hello , what do u want to do? " +
+                    "\n1 - print task groups" +
+                    "\n2 - create task group " +
+                    "\n3 - join task group " +
+                    "\n4 - add worker to task " +
+                    "\n5 - how much coins do I have?" +
+                    "\n6 - buy coins w/ bitcoins " +
+                    "\n7 - pause task " +
+                    "\n8 - resume task " +
+                    "\n9 - delete task group " +
                     "\n> ");
             int option1 = scanner.nextInt();
             scanner.nextLine();
             switch (option1) {
-                case 1 -> LOGGER.info(authSessionRI.ListTaskGroups());
+                case 1 -> LOGGER.info(authSessionRI.printTaskGroups());
                 case 2 -> LOGGER.info(authSessionRI.createTaskGroup());
                 case 3 -> {
-                    LOGGER.info("Selecione a Task para se juntar\n> ");
+                    LOGGER.info("Which task u want to join?\n> ");
                     String option2 = scanner.nextLine();
                     scanner.nextLine();
                     authSessionRI.joinTaskGroup(option2);
                 }
                 case 4 -> {
-                    LOGGER.info("Selecione a Task para o seu worker trabalhar\n> ");
+                    LOGGER.info("Which task u want to join ur worker?\n> ");
                     String taskOwner = scanner.nextLine();
                     scanner.nextLine();
                     this.createWorker(authSessionRI, taskOwner);
                 }
-                default -> LOGGER.info("Erro, opção inválida");
+                case 5 -> LOGGER.info(authSessionRI.getCoins());
+                case 6 -> {
+                    LOGGER.info("How much do u wanna buy? only bitcoin...\n> ");
+                    String amountToBuy = scanner.nextLine();
+                    scanner.nextLine();
+                    authSessionRI.buyCoins(Integer.parseInt(amountToBuy));
+                }
+                case 7 -> LOGGER.info(authSessionRI.pauseTask());
+                case 8 -> LOGGER.info(authSessionRI.resumeTask());
+                case 9 -> LOGGER.info(authSessionRI.deleteTaskGroup());
+                default -> LOGGER.info("Wrong option ... ");
             }
         }
     }
 
     /**
-     * Cria um worker/thread
-     *
-     * @param authSessionRI objeto da sessão sessão
-     * @param taskOwner     owner's name
+     * Creates a new worker who has 1 thread
+     * @param authSessionRI with all the methods from the session
+     * @param taskOwner owner's name
      */
     private void createWorker(AuthSessionRI authSessionRI, String taskOwner) throws IOException, TimeoutException {
-        Worker worker = new Worker(authSessionRI.getUser().getAmountOfWorkers() + 1, authSessionRI.getUser(), taskOwner);
-        authSessionRI.addWorkerToTask(taskOwner, worker);
-    }
-
-    public static class GUI extends Application {
-        @Override
-        public void start(Stage primaryStage) {
-            primaryStage.setTitle("Menu");
-            Button btn = new Button();
-            btn.setText("Entrar");
-            btn.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent event) {
-                    System.out.println("Thank you sensei!");
-                }
-            });
-            Button btn2 = new Button();
-            btn2.setText("Registar");
-            btn2.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent event) {
-                    System.out.println("Thank you sensei!");
-                }
-            });
-            Button btn3 = new Button();
-            btn3.setText("Chuapa-mos Capela <3");
-            btn3.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent event) {
-                    System.out.println("Thank you sensei!");
-                }
-            });
-            StackPane root = new StackPane();
-            VBox vbox = new VBox(5);
-            vbox.setAlignment(Pos.CENTER);
-            vbox.getChildren().addAll(btn, btn2, btn3);
-            root.getChildren().add(vbox);
-            primaryStage.setScene(new Scene(root, 300, 250));
-            primaryStage.show();
-        }
+        Worker worker = new Worker(authSessionRI.getUser().getAmountOfWorkers() + 1,authSessionRI.getUser(),taskOwner);
+        authSessionRI.addWorkerToTask(taskOwner,worker);
     }
 }

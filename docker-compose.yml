@@ -31,7 +31,7 @@ services:
 
   server:
     build: ./server
-    entrypoint: /app/run-server.sh
+    entrypoint: tail -f /dev/null
     working_dir: /app
     container_name: rmi_run_server
     environment:
@@ -41,7 +41,6 @@ services:
       SERVICE_NAME: ${SERVICE_NAME}
     networks:
       local_network:
-        ipv4_address: 172.20.0.11
         aliases:
           - server
           - rmi_server

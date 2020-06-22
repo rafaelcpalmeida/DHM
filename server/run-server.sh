@@ -53,6 +53,6 @@ fi
 
 CMD+="-Djava.rmi.server.hostname=rmi_run_server "
 CMD+="-Djava.security.policy=file:////app/security-policies/serverAllPermition.policy "
-CMD+="${PACKAGE_NAME} rmi_run_server 1099 ${SERVICE_NAME}"
+CMD+="${PACKAGE_NAME} rmi_run_server 1099 ${SERVICE_NAME} $1"
 
 $CMD

@@ -25,8 +25,8 @@ public class Rabbit {
         // TODO use env variable
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("rmi_rabbit_mq_server");
-        factory.setUsername("guest");
-        factory.setPassword("guest");
+        factory.setUsername("User");
+        factory.setPassword("User");
         return factory;
     }
 

@@ -6,8 +6,6 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface AuthFactoryRI extends Remote {
-    boolean register(User user) throws RemoteException;
-
-    AuthSessionRI login(User user) throws RemoteException;
-
+    boolean register(User guest) throws RemoteException;
+    AuthSessionRI login(User guest) throws RemoteException;
 }
