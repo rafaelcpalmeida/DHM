@@ -23,12 +23,15 @@ public class Server {
 
     public static void main(String[] args) {
 
-        if (args != null && args.length < 3) {
+        if (args != null && args.length < 4) {
+            LOGGER.severe("Invalid arguments. Exiting...");
             System.exit(-1);
         } else {
             assert args != null;
             Server srv = new Server(args);
-            if (srv.isBackupServer()) {
+            boolean isBackupServer = Boolean.parseBoolean(args[3]);
+            if (isBackupServer) {
+                LOGGER.info("Starting backup server...");
                 try {
                     srv.serverRI = (ServerRI) srv.lookupService();
                 } catch (Exception e) {
@@ -45,21 +48,21 @@ public class Server {
                     LOGGER.severe(e.toString());
                 }
                 srv.waiting();
-            } else {
-                srv.rebindService();
+                return;
             }
+            LOGGER.info("Starting main server...");
+            srv.rebindService();
         }
     }
 
     private void waiting() {
         try {
             this.id = this.serverRI.attachBackupServer(this.backupServerRI);
-            //LOGGER.info("Server id -> " + this.id);
         } catch (RemoteException e) {
             LOGGER.severe("Main server failed!\nStarting backup server...");
             this.rebindBackupService();
         }
-//Token Ring
+        //Token Ring
         while (true) {
             try {
                 this.serverRI.checkIfClientOk();
@@ -104,24 +107,6 @@ public class Server {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
         }
     }
-
-    /**
-     * Definir tipo de servidor (main ou backup)
-     */
-    private boolean isBackupServer() {
-        Scanner scanner = new Scanner(System.in);
-        int option = 0;
-        while (option < 1 || option > 2) {
-            LOGGER.info("Hello Admin, what type of server is this? " +
-                    "\n1 - Main Server" +
-                    "\n2 - Backup Server " +
-                    "\n> ");
-            option = scanner.nextInt();
-            scanner.nextLine();
-        }
-        return option != 1;
-    }
-
 
     /**
      * Rebinds main server

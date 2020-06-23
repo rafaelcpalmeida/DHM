@@ -12,14 +12,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-// Possible algorithms: "MD4", "SHA-1", "SHA-224", "SHA-256", "SHA-384", "SHA-512", "RIPEMD128", "RIPEMD160"
-// , "RIPEMD256", "RIPEMD320", "Tiger", "DHA256", e "FORK256".
 public class WorkerThread implements Runnable {
     private static final Logger LOGGER = Logger.getLogger(WorkerThread.class.getName());
-    private TaskState taskState;
-    private Worker worker;
+    private final TaskState taskState;
+    private final Worker worker;
     private List<String> words;
-    private ArrayList<String> hashes;
+    private final ArrayList<String> hashes;
     private int currentLine;
     private long deliveryTag;
 
@@ -43,18 +41,12 @@ public class WorkerThread implements Runnable {
                 LOGGER.info("Thread starting ....");
                 this.work();
             }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
+        } catch (RemoteException | NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
     }
 
-    private void work() throws NoSuchAlgorithmException, UnsupportedEncodingException, RemoteException, InterruptedException {
+    private void work() throws NoSuchAlgorithmException, RemoteException {
         String hashType = String.valueOf(this.worker.getHashType()).replace("_", "-");
         MessageDigest algorithm = MessageDigest.getInstance(hashType);
         for (String word : this.words) {
@@ -98,7 +90,6 @@ public class WorkerThread implements Runnable {
     /**
      * Check if lock is locked, if its locked , then wait until
      * its unlocked
-     * Lixo
      */
     public synchronized void allowPause() {
         synchronized(this.worker.getLock()) {

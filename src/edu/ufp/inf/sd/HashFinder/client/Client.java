@@ -5,7 +5,6 @@ import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 
 import java.io.IOException;
 import java.rmi.NotBoundException;
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.util.Scanner;
@@ -44,11 +43,10 @@ public class Client {
         }
     }
 
-
     /**
      * RMI
      */
-    private Remote lookupService() {
+    private void lookupService() {
         try {
             Registry registry = contextRMI.getRegistry();
             if (registry != null) {
@@ -60,7 +58,6 @@ public class Client {
         } catch (RemoteException | NotBoundException ex) {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
         }
-        return authFactoryRI;
     }
 
     private void playService() {
@@ -74,9 +71,8 @@ public class Client {
 
     }
 
-
     /**
-     * Por causa do backup server??
+     * Backup servers
      */
     private AuthFactoryRI getUpdatedAuthFactoryRI() {
         for (int attempt = 0; attempt < 5; attempt++) {
@@ -99,7 +95,7 @@ public class Client {
     }
 
     /**
-     * ??????????????'
+     * Backup servers
      */
     private AuthSessionRI getUpdatedSessionRI() {
         LOGGER.info("Updating Session");
@@ -136,9 +132,7 @@ public class Client {
                 System.exit(-1);
             }
 
-        } catch (IOException e) {
-            LOGGER.severe(e.toString());
-        } catch (TimeoutException e) {
+        } catch (IOException | TimeoutException e) {
             LOGGER.severe(e.toString());
         }
     }
@@ -151,18 +145,16 @@ public class Client {
      */
     private AuthSessionRI loginService() throws RemoteException {
         Scanner scanner = new Scanner(System.in);
-        LOGGER.info("1 - Register\n2 - Login\n> ");
+        LOGGER.info("\n\t1 - Register\n\t2 - Login\n> ");
         int option = scanner.nextInt();
         scanner.nextLine();
         switch (option) {
             case 1:
                 LOGGER.info("Choose your username:");
                 String regName = scanner.nextLine();
-                scanner.nextLine();
                 LOGGER.info("Choose your password:\n> ");
                 String regPassw = scanner.nextLine();
-                scanner.nextLine();
-                Guest guest = new Guest(name, passwd);
+                Guest guest = new Guest(regName, regPassw);
                 if (this.authFactoryRI.register(guest)) {
                     LOGGER.info("Welcome " + guest.getUsername());
                     this.user = guest;
@@ -173,10 +165,8 @@ public class Client {
             case 2:
                 LOGGER.info("Username:\n> ");
                 String name = scanner.nextLine();
-                scanner.nextLine();
                 LOGGER.info("Password:\n> ");
                 String passw = scanner.nextLine();
-                scanner.nextLine();
                 Guest guest2 = new Guest(name, passw);
                 LOGGER.info("Welcome " + guest2.getUsername());
                 this.user = guest2;
@@ -186,7 +176,7 @@ public class Client {
         }
     }
 
-    public static void main(String[] args) throws IOException, TimeoutException {
+    public static void main(String[] args) throws IOException {
         if (args != null && args.length < 3) {
             System.exit(-1);
         } else {
@@ -209,77 +199,55 @@ public class Client {
     private void chooseOption(AuthSessionRI authSessionRI) throws IOException, TimeoutException {
         while (true) {
             Scanner scanner = new Scanner(System.in);
-            System.out.print("1-List TaskGroups" +
-                    "\n2-Create TaskGroup" +
-                    "\n3-Join TaskGroup" +
-                    "\n4-Remove TaskGroup" +
-                    "\n5-Wallet" +
-                    "\n6-Buy cois" +
-                    "\n7-Attach worker" +
-                    "\n8-Resume task " +
-                    "\n7-Pause task " +
-
-                    "\n10-print token " +
-                    "\n11-logout " +
+            System.out.print("\t1-List TaskGroups" +
+                    "\n\t2-Create TaskGroup" +
+                    "\n\t3-Join TaskGroup" +
+                    "\n\t4-Remove TaskGroup" +
+                    "\n\t5-Wallet" +
+                    "\n\t6-Buy coins" +
+                    "\n\t7-Attach worker" +
+                    "\n\t8-Resume task " +
+                    "\n\t9-Pause task " +
+                    "\n\t0-logout " +
                     "\n> ");
             int option1 = scanner.nextInt();
             scanner.nextLine();
             switch (option1) {
-                case 1:
-                    LOGGER.info(authSessionRI.printTaskGroups(this.client.getHashedToken()));
-                    break
-                case 2:
+                case 1 -> LOGGER.info(authSessionRI.printTaskGroups());
+                case 2 -> LOGGER.info(authSessionRI.createTaskGroup());
+                case 3 -> {
                     LOGGER.info("Which task u want to join?\n> ");
                     String option2 = scanner.nextLine();
-                    scanner.nextLine();
-                    authSessionRI.joinTaskGroup(option2, this.client.getHashedToken());
-                    break;
-                case 3:
-                    LOGGER.info(authSessionRI.createTaskGroup(this.client.getHashedToken()));
-                    break;
-                case 4:
-                    LOGGER.info(authSessionRI.deleteTaskGroup(this.client.getHashedToken()));
-                    break;
-                case 5:
-                    LOGGER.info(authSessionRI.getCoins(this.client.getHashedToken()));
-                    break;
-                case 6:
+                    authSessionRI.joinTaskGroup(option2);
+                }
+                case 4 -> LOGGER.info(authSessionRI.deleteTaskGroup());
+                case 5 -> LOGGER.info(authSessionRI.getCoins());
+                case 6 -> {
                     LOGGER.info("Amount to buy\n> ");
-                    String amountToBuy = scanner.nextLine();
-                    scanner.nextLine();
-                    authSessionRI.buyCoins(Integer.parseInt(amountToBuy), this.client.getHashedToken());
-                    break;
-                case 7:
+                    int amountToBuy = scanner.nextInt();
+                    authSessionRI.buyCoins(amountToBuy);
+                }
+                case 7 -> {
                     LOGGER.info("Task ID to join\n> ");
                     String taskOwner = scanner.nextLine();
-                    scanner.nextLine();
                     this.createWorker(authSessionRI, taskOwner);
-                    break;
-                case 8:
-                    LOGGER.info(authSessionRI.resumeTask(this.client.getHashedToken()));
-                    break;
-                case 9:
-                    LOGGER.info(authSessionRI.pauseTask(this.client.getHashedToken()));
-                    break;
-                case 10:
-                    LOGGER.info("ur token -> " + this.client.getToken());
-                    break;
-                case 11:
-                    authSessionRI.logout(this.client.getHashedToken());
+                }
+                case 8 -> LOGGER.info(authSessionRI.resumeTask());
+                case 9 -> LOGGER.info(authSessionRI.pauseTask());
+                case 0 -> {
+                    authSessionRI.logout();
                     this.playService();
-                    break;
-                default:
-                    LOGGER.info("Wrong option ... ");
+                }
+                default -> LOGGER.info("Wrong option ... ");
             }
         }
     }
 
     /**
      * Cria 1 worker com 1 thread
-     *
      */
     private void createWorker(AuthSessionRI authSessionRI, String taskOwner) throws IOException, TimeoutException {
         Worker worker = new Worker(authSessionRI.getUser().getAmountOfWorkers() + 1, authSessionRI.getUser(), taskOwner);
-        authSessionRI.addWorkerToTask(taskOwner, worker, this.client.getHashedToken());
+        authSessionRI.addWorkerToTask(taskOwner, worker);
     }
 }

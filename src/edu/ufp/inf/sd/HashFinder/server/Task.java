@@ -27,8 +27,8 @@ public class Task {
     private ArrayList<String> words;                // has all the words to mine
     private ArrayList<String> digests = new ArrayList<>();        // hashes wanted to be mined
     private ArrayList<StringGroup> freeStringGroups;        // Available string groups for workers to use
-    private HashMap<Integer,WorkerRI> workers = new HashMap<>();                // all workers from this task
-    private HashMap<String,String> wordsFound;
+    private HashMap<Integer, WorkerRI> workers = new HashMap<>();                // all workers from this task
+    private HashMap<String, String> wordsFound;
     private String recvQueue;       // name of the receiving channel (hash states)
     private String sendQueue;       // name of the sending channel  (task states)
     private Channel recvChannel;    // channel used to receive info from workers
@@ -61,7 +61,7 @@ public class Task {
         LOGGER.info("Populating workers queue ...");
         for (StringGroup stringGroup : this.freeStringGroups) {
             TaskState taskState = new TaskState(stringGroup);
-            byte[] taskStateBytes =  SerializationUtils.serialize(taskState);
+            byte[] taskStateBytes = SerializationUtils.serialize(taskState);
             this.publishToWorkersQueue(taskStateBytes);
         }
         LOGGER.info("Finished populate workers queue !");
@@ -73,7 +73,7 @@ public class Task {
      * @param user for queue's names
      */
     private void createQueueNamesAndExchange(User user) {
-        this.sendQueue = user.getUsername() + "_toWorkesQueue";
+        this.sendQueue = user.getUsername() + "_toWorkersQueue";
         this.recvQueue = user.getUsername() + "_fromWorkersQueue";
         this.exchangeName = user.getUsername() + "_fannout";
     }
@@ -117,8 +117,8 @@ public class Task {
             int count = 0;
             int totalLines = 0;
             while ((inputLine = in.readLine()) != null) {
-                if(count == deltaSize || count == 0){
-                    this.freeStringGroups.add(new StringGroup(totalLines,deltaSize));
+                if (count == deltaSize || count == 0) {
+                    this.freeStringGroups.add(new StringGroup(totalLines, deltaSize));
                     count = 0;
                 }
                 count++;
@@ -143,15 +143,16 @@ public class Task {
      */
     public void addWorker(WorkerRI worker) throws RemoteException {
         LOGGER.info(" Adding worker to queue ...");
-        this.db.insert(worker,this.db.getUser(worker.getOwnerName()));
+        this.db.insert(worker, this.db.getUser(worker.getOwnerName()));
         this.startWorker(worker);
     }
 
     private void startWorker(WorkerRI worker) throws RemoteException {
         worker.start();
         String workerQueue = worker.getGeneralQueue();
-        this.publishToQueue(new GeneralState(this.digests,this.paused,this.hashType,this.url,false),workerQueue);
+        this.publishToQueue(new GeneralState(this.digests, this.paused, this.hashType, this.url, false), workerQueue);
     }
+
     /**
      * Método de escuta a informação vinda dos workers
      */
@@ -160,19 +161,19 @@ public class Task {
             DeliverCallback listen = (consumerTag, delivery) -> {
                 byte[] bytes = delivery.getBody();
                 HashSate hashSate = (HashSate) SerializationUtils.deserialize(bytes);
-                switch (hashSate.getStatus()){
+                switch (hashSate.getStatus()) {
                     case NEED_HASHES:
                         break;
                     case DONE:
                         LOGGER.info("HashState: Job done");
-                        if(this.giveCoins(1,hashSate.getOwnerName()))
-                            this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 1 coin!");
+                        if (this.giveCoins(1, hashSate.getOwnerName()))
+                            this.sendMessage(hashSate.getWorkerId(), hashSate.getOwnerName(), "You received 1 coin!");
                         break;
                     case MATCH:
                         LOGGER.info("Received a MATCH for " + hashSate.getHash() + "with word " + hashSate.getWord());
-                        this.updateTaskMatches(hashSate.getWord(),hashSate.getHash());
-                        if(this.giveCoins(10,hashSate.getOwnerName()))
-                            this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 10 coins!");
+                        this.updateTaskMatches(hashSate.getWord(), hashSate.getHash());
+                        if (this.giveCoins(10, hashSate.getOwnerName()))
+                            this.sendMessage(hashSate.getWorkerId(), hashSate.getOwnerName(), "You received 10 coins!");
                         break;
                     case DONE_AND_MATCH:
                         break;
@@ -193,8 +194,8 @@ public class Task {
      */
     private void sendMessage(int workerId, String ownerName, String message) {
         try {
-            WorkerRI workerRI = this.db.getWorkerStub(ownerName,workerId);
-            if(workerRI != null){
+            WorkerRI workerRI = this.db.getWorkerStub(ownerName, workerId);
+            if (workerRI != null) {
                 workerRI.printServerMessage(message);
                 return;
             }
@@ -212,10 +213,10 @@ public class Task {
     private boolean giveCoins(int amount, String username) {
         User user = this.db.getUser(username);
         User taskOwner = this.taskGroup.getOwner();
-        if(user != null){
+        if (user != null) {
             try {
-                this.removeCoins(amount,taskOwner);
-                this.db.giveMoney(user,amount);
+                this.removeCoins(amount, taskOwner);
+                this.db.giveMoney(user, amount);
             } catch (TaskOwnerRunOutOfMoney taskOwnerRunOutOfMoney) {
                 LOGGER.warning("Owner run out of coins!!! Pausing task!!");
                 this.taskGroup.getOwnerSession().sendMessage("Buy coins to continue Task");
@@ -230,8 +231,8 @@ public class Task {
     /**
      * Pausa todas as tasks
      */
-    public String pauseAllTask(){
-        if(!this.paused){
+    public String pauseAllTask() {
+        if (!this.paused) {
             this.pauseTask();
             return "Task has been paused!";
         }
@@ -241,11 +242,11 @@ public class Task {
     /**
      * Resume Tasks
      */
-    public String resumeAllTask(){
-        if(this.paused){
+    public String resumeAllTask() {
+        if (this.paused) {
             // not paused yet
             User taskOwner = this.taskGroup.getOwner();
-            if(this.taskGroup.getDb().getCoins(taskOwner) == 0){
+            if (this.taskGroup.getDb().getCoins(taskOwner) == 0) {
                 return "Insufficient coins do start";
             }
             this.resumeTask();
@@ -258,7 +259,7 @@ public class Task {
      * Pausa uma task
      */
     private void pauseTask() {
-        GeneralState generalState = new GeneralState(null,true,null,"",false);
+        GeneralState generalState = new GeneralState(null, true, null, "", false);
         this.publishToAllWorkers(generalState);
         this.paused = true;
     }
@@ -266,8 +267,8 @@ public class Task {
     /**
      * Resume uma task
      */
-    private void resumeTask(){
-        GeneralState generalState = new GeneralState(null,false,null,"",true);
+    private void resumeTask() {
+        GeneralState generalState = new GeneralState(null, false, null, "", true);
         this.publishToAllWorkers(generalState);
         this.paused = false;
     }
@@ -277,7 +278,7 @@ public class Task {
      * Tird dinheiro
      */
     private void removeCoins(int amount, User user) throws TaskOwnerRunOutOfMoney {
-        this.db.takeMoney(user,amount);
+        this.db.takeMoney(user, amount);
     }
 
     /**
@@ -285,9 +286,9 @@ public class Task {
      */
     private void updateTaskMatches(String wordFound, String digestFound) throws IOException {
         this.digests.remove(digestFound);
-        this.wordsFound.put(digestFound,wordFound);
-        GeneralState generalState = new GeneralState(this.digests,false,this.hashType,this.url,false);
-        if(this.digests.isEmpty()){
+        this.wordsFound.put(digestFound, wordFound);
+        GeneralState generalState = new GeneralState(this.digests, false, this.hashType, this.url, false);
+        if (this.digests.isEmpty()) {
             this.endTask();
             return;
         }
@@ -299,7 +300,7 @@ public class Task {
      */
     protected void endTask() throws IOException {
         LOGGER.info("Ending task!!");
-        GeneralState generalState = new GeneralState(null,false,null,"",false);
+        GeneralState generalState = new GeneralState(null, false, null, "", false);
         this.publishToAllWorkers(generalState);
         this.sendQueueChannel.queueDelete(this.sendQueue);
         this.recvChannel.queueDelete(this.recvQueue);
@@ -308,9 +309,9 @@ public class Task {
     /**
      * Envia informação aos workers
      */
-    private void publishToQueue(GeneralState generalState, String workerQueue){
+    private void publishToQueue(GeneralState generalState, String workerQueue) {
         try {
-            byte[] generalStateBytes =  SerializationUtils.serialize(generalState);
+            byte[] generalStateBytes = SerializationUtils.serialize(generalState);
             this.sendQueueChannel.basicPublish("", workerQueue, null, generalStateBytes);
         } catch (Exception e) {
             LOGGER.severe("[ERROR] Exception in task.publishToWorkersQueue()");
@@ -336,7 +337,7 @@ public class Task {
      */
     public void publishToAllWorkers(GeneralState generalState) {
         try {
-            byte[] generalStateBytes =  SerializationUtils.serialize(generalState);
+            byte[] generalStateBytes = SerializationUtils.serialize(generalState);
             this.sendGeralChannel.basicPublish(this.exchangeName, "", null, generalStateBytes);
             LOGGER.info("[SENT] Message from task to all workers!");
         } catch (Exception e) {

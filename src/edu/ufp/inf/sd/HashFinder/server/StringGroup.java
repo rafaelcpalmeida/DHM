@@ -4,8 +4,8 @@ import java.io.Serializable;
 
 
 public class StringGroup implements Serializable {
-    private int ceiling;
-    private int delta;
+    private final int ceiling;
+    private final int delta;
 
     public StringGroup(int ceiling, int delta) {
         this.ceiling = ceiling;

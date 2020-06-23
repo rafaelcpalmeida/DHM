@@ -11,15 +11,15 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serializable {
+public class ServerImpl extends UnicastRemoteObject implements ServerRI, Serializable {
     private static final Logger LOGGER = Logger.getLogger(ServerImpl.class.getName());
-    private HashMap<ClientRI,String> clientRIS;
+    private HashMap<ClientRI, String> clientRIS;
     private AuthFactoryImpl authFactory;
     private Server backupServer;
     private ArrayList<ServerRI> backupServersRIS;
     private boolean run;                        // can this server run functions?
 
-    public ServerImpl(boolean run, Server backupServer) throws RemoteException{
+    public ServerImpl(boolean run, Server backupServer) throws RemoteException {
         super();
         this.run = run;
         this.authFactory = new AuthFactoryImpl(this);
@@ -27,7 +27,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
         this.backupServersRIS = new ArrayList<>();
         this.clientRIS = new HashMap<>();
         LOGGER.info("Started a new Server!");
-        if(this.run)this.startThread();
+        if (this.run) this.startThread();
     }
 
     /**
@@ -56,10 +56,11 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
                 }
 
                 if (toRemove.size() > 0) {
-                    for (ClientRI clientRI: toRemove){
+                    for (ClientRI clientRI : toRemove) {
                         try {
                             this.detach(clientRI);
-                        } catch (Exception ignored) { }
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
 
@@ -78,7 +79,8 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
                     for (ServerRI serverRI : toRemoveServers) {
                         try {
                             this.removeBackupServer(serverRI);
-                        } catch (Exception ignored) { }
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
 
@@ -89,6 +91,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     /**
      * Sets if this server can run and be Main
      * Rafa
+     *
      * @param b boolean if this server can run
      */
     @Override
@@ -106,7 +109,8 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
             ClientRI clientRI = entry.getKey();
             try {
                 clientRI.attachNewServer(this);
-            } catch (RemoteException ignored) { }
+            } catch (RemoteException ignored) {
+            }
         }
 
         for (ServerRI serverRI : this.backupServersRIS) {
@@ -123,7 +127,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
      */
     @Override
     public void checkIfClientOk() throws RemoteException {
-    //nothing
+        //nothing
     }
 
     @Override
@@ -134,14 +138,15 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
     /**
      * Elimina o servidor de backup
      */
-    private void removeBackupServer(ServerRI serverRI) throws RemoteException{
+    private void removeBackupServer(ServerRI serverRI) throws RemoteException {
         LOGGER.info("Server exists: " + this.backupServersRIS.contains(serverRI));
 
         this.backupServersRIS.remove(serverRI);
-        for (ServerRI server: this.backupServersRIS) {
+        for (ServerRI server : this.backupServersRIS) {
             try {
                 server.changeId(this.backupServersRIS.indexOf(server));
-            } catch (Exception ignored) { }
+            } catch (Exception ignored) {
+            }
         }
 
         this.updateBackupServers();
@@ -183,11 +188,12 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
      */
     public void updateBackupServers() {
         new Thread(() -> {
-            for (ServerRI backupServerRI: this.backupServersRIS) {
+            for (ServerRI backupServerRI : this.backupServersRIS) {
                 try {
-                    backupServerRI.copyInfo(this.clientRIS,this.authFactory.getDb());
+                    backupServerRI.copyInfo(this.clientRIS, this.authFactory.getDb());
                     backupServerRI.copyBackupServers(this.backupServersRIS);
-                } catch (Exception ignored) { }
+                } catch (Exception ignored) {
+                }
             }
         }).start();
     }
@@ -212,7 +218,7 @@ public class ServerImpl extends UnicastRemoteObject implements ServerRI , Serial
      * Copia informação para os outros servidores
      */
     @Override
-    public void copyInfo(HashMap<ClientRI, String> clientRIS,DBMockup dbMockup) throws RemoteException {
+    public void copyInfo(HashMap<ClientRI, String> clientRIS, DBMockup dbMockup) throws RemoteException {
         LOGGER.info("Received info and updated my db");
         this.clientRIS = clientRIS;
         this.authFactory.setDb(dbMockup);       // updates db

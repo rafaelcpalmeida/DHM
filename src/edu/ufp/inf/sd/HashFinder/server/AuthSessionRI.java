@@ -8,17 +8,29 @@ import java.rmi.RemoteException;
 import java.util.concurrent.TimeoutException;
 
 public interface AuthSessionRI extends Remote {
-    public void joinTaskGroup(String username,String token) throws RemoteException;
-    public String printTaskGroups(String token) throws RemoteException;
-    public String createTaskGroup(String token) throws IOException, TimeoutException;
-    public void logout(String token) throws RemoteException;
-    public User getUser() throws RemoteException;
-    public void addWorkerToTask(String taskOwner, WorkerRI worker,String token) throws RemoteException;
-    public User getUserFromName(String username, String token) throws RemoteException;
-    public String getCoins(String token) throws RemoteException;
-    public void buyCoins(int amount,String token) throws RemoteException;
-    public String pauseTask(String token) throws RemoteException;
-    public String resumeTask(String token) throws RemoteException;
-    public String deleteTaskGroup(String token) throws RemoteException;
-    public void checkIfClientOk() throws RemoteException;
+    void joinTaskGroup(String username) throws RemoteException;
+
+    String printTaskGroups() throws RemoteException;
+
+    String createTaskGroup() throws IOException, TimeoutException;
+
+    void logout() throws RemoteException;
+
+    User getUser() throws RemoteException;
+
+    void addWorkerToTask(String taskOwner, WorkerRI worker) throws RemoteException;
+
+    User getUserFromName(String username) throws RemoteException;
+
+    String getCoins() throws RemoteException;
+
+    void buyCoins(int amount) throws RemoteException;
+
+    String pauseTask() throws RemoteException;
+
+    String resumeTask() throws RemoteException;
+
+    String deleteTaskGroup() throws RemoteException;
+
+    void checkIfClientOk() throws RemoteException;
 }

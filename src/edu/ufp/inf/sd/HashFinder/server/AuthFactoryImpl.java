@@ -50,8 +50,7 @@ public class AuthFactoryImpl extends UnicastRemoteObject implements AuthFactoryR
             if(!this.db.existsSession(user)){
                 // Cria a sessão
                 String newPlainToken = this.generateToken();
-                AuthSessionRI authSessionRI = new AuthSessionImpl(this.db,user,this.server,newPlainToken,clientRI);
-                clientRI.sendToken(newPlainToken);
+                AuthSessionRI authSessionRI = new AuthSessionImpl(this.db,user,this.server, clientRI);
                 this.db.insert(authSessionRI,user);
                 this.server.updateBackupServers();
                 return authSessionRI;
@@ -60,15 +59,13 @@ public class AuthFactoryImpl extends UnicastRemoteObject implements AuthFactoryR
             if(!this.checkIfSessionIsValid(authSessionRI)){
                 // Sessão inválida
                 String newPlainToken = this.generateToken();
-                AuthSessionRI sessionRI = new AuthSessionImpl(this.db,user,this.server,newPlainToken, clientRI);
-                clientRI.sendToken(newPlainToken);
+                AuthSessionRI sessionRI = new AuthSessionImpl(this.db,user,this.server, clientRI);
                 this.db.update(sessionRI,user); // updates sessions
                 this.server.updateBackupServers();
                 return sessionRI;
             }
             // Envia token da sessão ao cliente
             AuthSessionImpl authSession = (AuthSessionImpl) authSessionRI;
-            clientRI.sendToken(authSession.getToken());
             return authSessionRI;
         }
         return null;

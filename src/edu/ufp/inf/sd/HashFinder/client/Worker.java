@@ -22,12 +22,10 @@ import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
-public class Worker extends UnicastRemoteObject implements WorkerRI{
+public class Worker extends UnicastRemoteObject implements WorkerRI {
     private static final Logger LOGGER = Logger.getLogger(Worker.class.getName());
     private final int id;
-    private int coinsEarnt;
-    private User owner;
-    private String taskOwner;
+    private final User owner;
     private String recvDirectQueue;
     private String sendQueue;
     private String exchangeName;
@@ -36,34 +34,32 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
     private Channel recvDirectChannel;
     private String generalQueue;
     private StringGroup original;
-    private int currentLine  = 0;
+    private int currentLine = 0;
     private ArrayList<String> hashes = new ArrayList<>();
-    private ArrayList<String> words = new ArrayList<>();
+    private final ArrayList<String> words = new ArrayList<>();
     private AvailableDigestAlgorithms hashType;
     private WorkerThread workerThread;
     private Thread workingThread;
     private boolean stop = false;
     private boolean pause = false;
-    private Object lock = new Object();
+    private final Object lock = new Object();
 
 
     /**
      * Cria canais de comunicação com a Task
      */
     public Worker(int id, User user, String taskOwner) throws IOException, TimeoutException {
-        this.taskOwner = taskOwner;
         this.owner = user;
         this.id = id;
-        this.coinsEarnt = 0;
         this.createQueueNamesAndExchange(taskOwner);
         this.createChannels();
         this.declareQueuesAndExchange();
-
     }
 
-    public void start() throws RemoteException{
+    public void start() throws RemoteException {
         this.listenToGeneral();
     }
+
     /**
      * Declaração das Queues
      */
@@ -82,7 +78,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         Rabbit rabbit = new Rabbit();
         ConnectionFactory factory = rabbit.connect();
         // Criação de canais
-        Connection connection=factory.newConnection();
+        Connection connection = factory.newConnection();
         this.sendChannel = connection.createChannel();
         this.recvGeralChannel = connection.createChannel();
         this.recvDirectChannel = connection.createChannel();
@@ -93,11 +89,11 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
      */
     private void declareQueuesAndExchange() throws IOException {
         // declare queues
-        this.sendChannel.queueDeclare(this.sendQueue,true,false,false,null);
+        this.sendChannel.queueDeclare(this.sendQueue, true, false, false, null);
         this.generalQueue = this.recvGeralChannel.queueDeclare().getQueue();
-        recvGeralChannel.exchangeDeclare(this.exchangeName,BuiltinExchangeType.FANOUT);
+        recvGeralChannel.exchangeDeclare(this.exchangeName, BuiltinExchangeType.FANOUT);
         recvGeralChannel.queueBind(this.generalQueue, this.exchangeName, "");
-        this.recvDirectChannel.queueDeclare(this.recvDirectQueue,true,false,false,null);
+        this.recvDirectChannel.queueDeclare(this.recvDirectQueue, true, false, false, null);
         this.recvDirectChannel.basicQos(1);
     }
 
@@ -111,7 +107,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
                 byte[] bytes = delivery.getBody();
                 TaskState taskState = (TaskState) SerializationUtils.deserialize(bytes);
                 this.original = taskState.getStringGroup();
-                this.workerThread = new WorkerThread(taskState,this);
+                this.workerThread = new WorkerThread(taskState, this);
                 this.workerThread.setDeliveryTag(delivery.getEnvelope().getDeliveryTag());
                 this.workerThread.run();
             };
@@ -129,34 +125,34 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
      * Envio de informações para a Task
      * Informa estado atual da tarefa
      */
-    private void sendHashState(boolean match, boolean done, String word, String hash){
+    private void sendHashState(boolean match, boolean done, String word, String hash) {
         int originalCeiling = this.original.getCeiling();
         int lastLine = originalCeiling + this.original.getDelta();
         int newDelta = lastLine - this.currentLine;
         StringGroup pending = new StringGroup(this.currentLine, newDelta);
         WorkerStatus workerStatus = WorkerStatus.MATCH;
-        if(done) workerStatus = WorkerStatus.DONE;
-        if(done && match) workerStatus = WorkerStatus.DONE_AND_MATCH;
-        HashSate hashSate = new HashSate(workerStatus, this.original, pending, hash,this.id,word,this.owner.getUsername());
+        if (done) workerStatus = WorkerStatus.DONE;
+        if (done && match) workerStatus = WorkerStatus.DONE_AND_MATCH;
+        HashSate hashSate = new HashSate(workerStatus, this.original, pending, hash, this.id, word, this.owner.getUsername());
         this.publish(hashSate);
     }
 
     /**
      * Informação de conclusão de tarefa
      */
-    public void workerFinished(boolean match, long deliveryTagThread){
-        this.sendHashState(match,true,"","");
+    public void workerFinished(boolean match, long deliveryTagThread) {
+        this.sendHashState(match, true, "", "");
         //LOGGER.info("Sending ack and hash state w/ deliveryTag " + deliveryTagThread);
         try {
-            this.recvDirectChannel.basicAck(deliveryTagThread,false);
+            this.recvDirectChannel.basicAck(deliveryTagThread, false);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void match(String word, String hash, long deliveryTagThread){
+    public void match(String word, String hash, long deliveryTagThread) {
         //LOGGER.info("Sending information that we found a match!");
-        this.sendHashState(true,false,word,hash);
+        this.sendHashState(true, false, word, hash);
     }
 
 
@@ -170,22 +166,22 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
                 GeneralState generalState = (GeneralState) SerializationUtils.deserialize(bytes);
                 //Lixo
                 //Resume
-                if(generalState.isResume()){
+                if (generalState.isResume()) {
                     LOGGER.info("Going to resume the work !!!");
-                    this.pause=false;
-                    synchronized(lock) {
+                    this.pause = false;
+                    synchronized (lock) {
                         lock.notifyAll();
                     }
                     return;
                 }
                 //Pause
-                if(generalState.isPause()) {
+                if (generalState.isPause()) {
                     LOGGER.info("Paused state received, going to stop work");
                     this.pause = true;
                     return;
                 }
                 //Trabalho Concluido
-                if(generalState.getHashes() == null){
+                if (generalState.getHashes() == null) {
                     this.workingThread.interrupt();
                     this.workerThread = null;
                     LOGGER.info("Killing Thread, job done!");
@@ -195,7 +191,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
                 }
                 //Quando o worker é novo
                 //Recebe dados para trabalhar
-                if(this.hashes.isEmpty()){
+                if (this.hashes.isEmpty()) {
                     this.hashType = generalState.getHashType();
                     this.populateWordsList(generalState.getWordsUrl());
                     this.hashes = generalState.getHashes();
@@ -215,6 +211,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
 
     /**
      * Vai buscar ao URL as palavras e grava num array
+     *
      * @param wordsUrl URL that has all the words to hash and compare
      */
     private void populateWordsList(String wordsUrl) {
@@ -240,7 +237,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
      */
     public void publish(HashSate hashSate) {
         try {
-            byte[] hashStateBytes =  SerializationUtils.serialize(hashSate);
+            byte[] hashStateBytes = SerializationUtils.serialize(hashSate);
             this.sendChannel.basicPublish("", this.sendQueue, null, hashStateBytes);
         } catch (Exception e) {
             LOGGER.severe("[ERROR] Exception in worker.publish()");

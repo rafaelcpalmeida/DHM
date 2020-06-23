@@ -4,9 +4,9 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface WorkerRI extends Remote {
-    public void start() throws RemoteException;
-    public int getId() throws RemoteException;
-    public String getGeneralQueue() throws RemoteException;
-    public void printServerMessage(String message) throws RemoteException;
-    public String getOwnerName() throws RemoteException;
+    void start() throws RemoteException;
+    int getId() throws RemoteException;
+    String getGeneralQueue() throws RemoteException;
+    void printServerMessage(String message) throws RemoteException;
+    String getOwnerName() throws RemoteException;
 }
