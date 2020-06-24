@@ -16,17 +16,17 @@ public class TaskGroup {
     private ArrayList<User> users;
     private AuthSessionImpl ownerSession;
 
-    public TaskGroup(int coinPool, User owner, DBMockup db, AuthSessionImpl session) throws IOException, TimeoutException {
+    public TaskGroup(int coinPool, User owner, DBMockup db, AuthSessionImpl session, ArrayList<String> digests, int deltaSize, AvailableDigestAlgorithms algorithm ) throws IOException, TimeoutException {
         this.coinPool = coinPool;
         this.owner = owner;
         this.db = db;
         this.users = new ArrayList<>();
         this.ownerSession = session;
-        ArrayList<String> pumba = new ArrayList<>();
-        pumba.add("7B88910DCAC22723AB8E2A92FBF7221654D46CE5D5F57A997199FE19D3903898547C410170DECDBD44F42E428F010E68F8271E533691EFA23C93B141BD5E13E7");
-        pumba.add("D9D92A0853EB90634884302C7D35B2F1C359230C3B05EA88288BC40B702A43003876389856D8CD60EF3451E9CE878A0076B7CA4339714AE6AB10211FEC329BFD");
-        pumba.add("6FF1CAE1895156AE88C306DD95AF1C82915E10503A486CE41E26B11092767304F82FBF86C406F6587C6D9417446E9FAD16DB440B91EDD7A11792B4B5A7BC0A1D");
-        this.task = new Task(AvailableDigestAlgorithms.SHA_512,100,pumba,1000,this);
+        //ArrayList<String> pumba = new ArrayList<>();
+        //pumba.add("7B88910DCAC22723AB8E2A92FBF7221654D46CE5D5F57A997199FE19D3903898547C410170DECDBD44F42E428F010E68F8271E533691EFA23C93B141BD5E13E7");
+        //pumba.add("D9D92A0853EB90634884302C7D35B2F1C359230C3B05EA88288BC40B702A43003876389856D8CD60EF3451E9CE878A0076B7CA4339714AE6AB10211FEC329BFD");
+        //pumba.add("6FF1CAE1895156AE88C306DD95AF1C82915E10503A486CE41E26B11092767304F82FBF86C406F6587C6D9417446E9FAD16DB440B91EDD7A11792B4B5A7BC0A1D");
+        this.task = new Task(algorithm,digests,deltaSize,this);
     }
 
     /**
@@ -77,7 +77,7 @@ public class TaskGroup {
     public String toString() {
         return "\nTaskGroup{" +
                 "owner= " + this.owner.getUsername() + "\n" +
-                "amout of users= " + this.users.size() + "\n" +
+                "amount of users= " + this.users.size() + "\n" +
                 "coin pool = " + this.coinPool + "\n" +
                 "hashes found progress = " + this.task.getWordsFound() + "/" + this.task.getNumberDiggests() + "\n" +
                 "hashing progress = " + this.task.getProgressTotalHashState() + "/1" +  "\n" +
@@ -90,5 +90,9 @@ public class TaskGroup {
 
     public void setOwnerSession(AuthSessionImpl ownerSession) {
         this.ownerSession = ownerSession;
+    }
+
+    public boolean hasUser(User user){
+        return this.users.contains(user);
     }
 }

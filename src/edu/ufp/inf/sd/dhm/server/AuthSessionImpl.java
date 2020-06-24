@@ -69,6 +69,11 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
             return null;
         }
         TaskGroup taskGroup = this.db.getTaskGroup(this.user);
+        if(taskGroup == null){
+            // no task group created yet for this user
+            LOGGER.warning("User hasnt created a task group yet");
+            return "You didn't create a task group yet , so u cant pause it ... ";
+        }
         return taskGroup.getTask().pauseAllTask();
     }
 
@@ -93,6 +98,11 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
             return null;
         }
         TaskGroup taskGroup = this.db.getTaskGroup(this.user);
+        if(taskGroup == null){
+            // no task group created yet for this user
+            LOGGER.warning("User hasnt created a task group yet");
+            return "You didn't create a task group yet , so u cant resume it ... ";
+        }
         return taskGroup.getTask().resumeAllTask();
     }
 
@@ -139,11 +149,12 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
         User taskOwner = this.db.getUser(username);
         if(taskOwner == null){
             LOGGER.info("Owner not found ...");
+            this.sendMessage("Owner not found...");
             return;
         }
         TaskGroup taskGroup = this.getTaskGroupFrom(taskOwner);
         taskGroup.addUser(this.user);
-        this.db.insert(taskGroup,this.user);
+        //this.db.insert(taskGroup,this.user);
         this.server.updateBackupServers();
         LOGGER.info(username + " added to task group!");
     }
@@ -196,12 +207,12 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
      * @throws RemoteException if remote error
      */
     @Override
-    public String createTaskGroup(String token) throws IOException, TimeoutException {
+    public String createTaskGroup(String token,AvailableDigestAlgorithms algorithm , int deltaSize, ArrayList<String> digests) throws IOException, TimeoutException {
         if(!this.isTokenValid(token)){
             this.sendMessage("Warning. Invalid token!");
             return null;
         }
-        TaskGroup taskGroup = new TaskGroup(this.user.getCoins(),this.user,this.db,this);
+        TaskGroup taskGroup = new TaskGroup(this.user.getCoins(),this.user,this.db,this,digests,deltaSize,algorithm);
         taskGroup.addUser(this.user);
         this.db.insert(taskGroup,user);     // inserting in db
         this.server.updateBackupServers();
@@ -234,8 +245,20 @@ public class AuthSessionImpl extends UnicastRemoteObject implements AuthSessionR
             return;
         }
         User userTaskOwner = this.db.getUser(taskOwner);
-        if(taskOwner == null){
-            LOGGER.info("Owner not found ...");
+        if(userTaskOwner == null){
+            LOGGER.warning("Owner not found ...");
+            this.sendMessage("Owner not found ...");
+            return;
+        }
+        TaskGroup ownerTaskGroup = this.db.getTaskGroup(userTaskOwner);
+        if(ownerTaskGroup == null){
+            LOGGER.warning("Task group not found!");
+            this.sendMessage("Task group not found!");
+            return;
+        }
+        if(!ownerTaskGroup.hasUser(this.user)){
+            LOGGER.warning("You didnt joined this taskgroup yet , pls join to start working!");
+            this.sendMessage("You didnt joined this taskgroup yet , pls join to start working!");
             return;
         }
         LOGGER.info("adding worker ...");
