@@ -72,6 +72,10 @@ public class WorkerThread implements Runnable {
                 this.worker.setCurrentLine(this.currentLine);
                 this.worker.match(word,digest,this.deliveryTag);
             }
+            // this way it always sends currentsate 10x every stringroup, ex.: delta->1000 sends hashstate in multiple of 100
+            if(this.currentLine % (this.taskState.getStringGroup().getDelta() / 10) == 0){
+                this.worker.currrentState();
+            }
             this.currentLine++;
         }
         this.worker.doneWithStringGroup(false,this.deliveryTag);
@@ -121,4 +125,7 @@ public class WorkerThread implements Runnable {
         }
     }
 
+    public int getCurrentLine() {
+        return currentLine;
+    }
 }

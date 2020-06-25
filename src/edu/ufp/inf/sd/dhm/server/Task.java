@@ -212,6 +212,8 @@ public class Task {
                         if(this.giveCoins(10,hashSate.getOwnerName()))
                             this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 10 coins!");
                         break;
+                    case CURRENT_STATE:
+                        LOGGER.info("Received a STATE , missing to hash -> ceilling: "  + hashSate.getPending().getCeiling() + ", Delta: " + hashSate.getPending().getDelta());
                     default:
                         break;
                 }
@@ -260,7 +262,7 @@ public class Task {
                 this.db.giveMoney(user,amount);
             } catch (TaskOwnerRunOutOfMoney taskOwnerRunOutOfMoney) {
                 LOGGER.warning("Owner run out of coins!!! Pausing task !!");
-                this.taskGroup.getOwnerSession().sendMessage("You run out of coins , pls buy some otherwise the task won't resume.");
+                this.taskGroup.getOwnerSession().sendMessage("You run out of coins , pls buy some and resume otherwise the task won't continue.");
                 this.pauseTask();
                 return false;
             }
@@ -344,6 +346,7 @@ public class Task {
         GeneralState generalState = new GeneralState(this.digests,false,this.hashType,this.url,false);
         if(this.digests.isEmpty()){
             // All hashes found!
+            this.paused = true;
             this.terminated = true; // if the task is finished
             this.endTask();
             return;

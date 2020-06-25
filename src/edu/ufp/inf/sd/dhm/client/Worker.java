@@ -115,14 +115,11 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
         try {
             DeliverCallback work = (consumerTag, delivery) -> {
                 this.workingThread = Thread.currentThread();
-                //LOGGER.info("W#" + this.id + " working ...");
-                //LOGGER.info("deserializatin taskstate");
+
                 byte[] bytes = delivery.getBody();
                 TaskState taskState = (TaskState) SerializationUtils.deserialize(bytes);
                 this.original = taskState.getStringGroup();
-                //LOGGER.info("I'm currently on thread + " +  Thread.currentThread().getName());
-                //LOGGER.info("This is this thread delivery tag " + delivery.getEnvelope().getDeliveryTag());
-                //LOGGER.info(taskState.toString());
+
                 this.workerThread = new WorkerThread(taskState,this);
                 this.workerThread.setDeliveryTag(delivery.getEnvelope().getDeliveryTag());
                 this.workerThread.run();
@@ -142,14 +139,14 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
      * @param match if found a match
      * @param done if done with all the StringGroup
      */
-    private void sendHashState(boolean match, boolean done, String word, String hash){
+    private void sendHashState(boolean match, boolean done, boolean current, String word, String hash){
         int originalCeiling = this.original.getCeiling();
         int lastLine = originalCeiling + this.original.getDelta();
-        int newDelta = lastLine - this.currentLine;
-        StringGroup pending = new StringGroup(this.currentLine, newDelta);
+        int newDelta = lastLine - workerThread.getCurrentLine();
+        StringGroup pending = new StringGroup(workerThread.getCurrentLine() + 1, newDelta - 1);
         WorkerStatus workerStatus = WorkerStatus.MATCH;
         if(done) workerStatus = WorkerStatus.DONE;
-        if(done && match) workerStatus = WorkerStatus.DONE_AND_MATCH;
+        if(current) workerStatus = WorkerStatus.CURRENT_STATE; // current state of the work
         HashSate hashSate = new HashSate(workerStatus, this.original, pending, hash,this.id,word,this.owner.getUsername());
         this.publish(hashSate);
     }
@@ -159,7 +156,7 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
      * @param match if has a match
      */
     public void doneWithStringGroup(boolean match, long deliveryTagThread){
-        this.sendHashState(match,true,"","");
+        this.sendHashState(match,true,false,"","");
         //LOGGER.info("Sending ack and hash state w/ deliveryTag " + deliveryTagThread);
         try {
             this.recvDirectChannel.basicAck(deliveryTagThread,false);
@@ -170,15 +167,12 @@ public class Worker extends UnicastRemoteObject implements WorkerRI{
 
     public void match(String word, String hash, long deliveryTagThread){
         //LOGGER.info("Sending information that we found a match!");
-        this.sendHashState(true,false,word,hash);
+        this.sendHashState(true,false,false,word,hash);
     }
 
-    /**
-     * When the worker is new and has now Hashes to compare
-     */
-    private void needHashes(){
-        HashSate hashSate = new HashSate(WorkerStatus.NEED_HASHES,this.id);
-        this.publish(hashSate);
+    public void currrentState(){
+        LOGGER.info("Sending work state!");
+        this.sendHashState(false, false, true,"","" );
     }
 
     /**
