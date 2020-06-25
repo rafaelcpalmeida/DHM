@@ -37,6 +37,7 @@ public class Task {
     private String exchangeName;
     private DBMockup db;
     private boolean paused;
+    private boolean terminated;
     private int numberWordsFound; // number of hashes found
     private double progressTotalHashState; // progress 0.00-1.00 of the string groups hashed
     private int numberOfStringGroupsHashed; // number of string groups hashed
@@ -194,14 +195,10 @@ public class Task {
     private void listen() {
         try {
             DeliverCallback listen = (consumerTag, delivery) -> {
-                // TODO make the callback to the received message from the worker queue
-                //String message = new String(delivery.getBody(), "UTF-8");
-                //LOGGER.info("[RECV][TASK]" + " Received message from worker");
                 byte[] bytes = delivery.getBody();
                 HashSate hashSate = (HashSate) SerializationUtils.deserialize(bytes);
                 switch (hashSate.getStatus()){
                     case DONE:
-                        //LOGGER.info("received a dont w/ string group  ");
                         LOGGER.info("Received a DONE state ...");
                         this.numberOfStringGroupsHashed++;
                         this.progressTotalHashState = getProgressTotalHashState();
@@ -211,8 +208,7 @@ public class Task {
                     case MATCH:
                         LOGGER.info("Received a MATCH for " + hashSate.getHash() + "w/ word " + hashSate.getWord());
                         this.updateTaskMatches(hashSate.getWord(),hashSate.getHash());
-                        this.numberWordsFound ++;
-                        this.updateTaskMatches(hashSate.getWord(),hashSate.getHash());
+                        this.numberWordsFound++;
                         if(this.giveCoins(10,hashSate.getOwnerName()))
                             this.sendMessage(hashSate.getWorkerId(),hashSate.getOwnerName(),"You received 10 coins!");
                         break;
@@ -282,6 +278,7 @@ public class Task {
      * @return Message of the operation
      */
     public String pauseAllTask(){
+        if (this.terminated) return "Task has already been completed, no need to resume!";
         if(!this.paused){
             // not paused yet
             this.pauseTask();
@@ -296,6 +293,7 @@ public class Task {
      * @return Message of the operation
      */
     public String resumeAllTask(){
+        if (this.terminated) return "Task has already been completed, no need to resume!";
         if(this.paused){
             // not paused yet
             User taskOwner = this.taskGroup.getOwner();
@@ -346,6 +344,7 @@ public class Task {
         GeneralState generalState = new GeneralState(this.digests,false,this.hashType,this.url,false);
         if(this.digests.isEmpty()){
             // All hashes found!
+            this.terminated = true; // if the task is finished
             this.endTask();
             return;
         }
@@ -436,4 +435,8 @@ public class Task {
     public String getSendQueue() {
         return sendQueue;
     }
+
+    public boolean isPaused() { return paused; }
+
+    public boolean isTerminated() { return terminated; }
 }

@@ -186,6 +186,61 @@ public class Client {
         this.playService();
     }
 
+    private void setTaskParameters(AuthSessionRI authSessionRI) throws IOException, TimeoutException {
+        Scanner scanner = new Scanner(System.in);
+        LOGGER.info("whats the algorithm?");
+        LOGGER.info("\n" +
+                "1 - MD2,\n" +
+                "2 - MD5,\n" +
+                "3 - SHA_1,\n" +
+                "4 - SHA_224,\n" +
+                "5 - SHA_256,\n" +
+                "6 - SHA_384,\n" +
+                "7 - SHA_512,\n>");
+        int algorithm = Integer.parseInt(scanner.nextLine());
+        scanner.nextLine();
+        AvailableDigestAlgorithms algorithmChoosen = AvailableDigestAlgorithms.MD5;
+        switch (algorithm){
+            case 1:
+                algorithmChoosen = AvailableDigestAlgorithms.MD2;
+                break;
+            case 2:
+                algorithmChoosen = AvailableDigestAlgorithms.MD5;
+                break;
+            case 3:
+                algorithmChoosen = AvailableDigestAlgorithms.SHA_1;
+                break;
+            case 4:
+                algorithmChoosen = AvailableDigestAlgorithms.SHA_224;
+                break;
+            case 5:
+                algorithmChoosen = AvailableDigestAlgorithms.SHA_256;
+                break;
+            case 6:
+                algorithmChoosen = AvailableDigestAlgorithms.SHA_384;
+                break;
+            case 7:
+                algorithmChoosen = AvailableDigestAlgorithms.SHA_512;
+                break;
+            default:
+                LOGGER.warning("ALGORITHM NOT FOUND, SO IS GOING TO BE MD5");
+                break;
+        }
+        LOGGER.info("How many hashes?");
+        int amountOfHashes = Integer.parseInt(scanner.nextLine());
+        scanner.nextLine();
+        ArrayList<String> digests = new ArrayList<>();
+        for(int i = 1 ; i <= amountOfHashes ; i++){
+            LOGGER.info("What's the hash nr " + i + " ?");
+            String hash = scanner.nextLine();
+            scanner.nextLine();
+            digests.add(hash);
+        }
+        LOGGER.info("What's the delta size (amount of lines a worker has to mine to get a single coin) ? be gentle ..");
+        int deltaSize = Integer.parseInt(scanner.nextLine());
+        scanner.nextLine();
+        LOGGER.info(authSessionRI.createTaskGroup(this.client.getHashedToken(),algorithmChoosen,deltaSize,digests));
+    }
 
     /**
      * Interactive menu for user to choose all options
@@ -214,57 +269,7 @@ public class Client {
                     LOGGER.info(authSessionRI.printTaskGroups(this.client.getHashedToken()));
                     break;
                 case 2:
-                    LOGGER.info("whats the algorithm?");
-                    LOGGER.info("1 - MD2,\n" +
-                            "2 -    MD5,\n" +
-                            "3 -    SHA_1,\n" +
-                            "4 -    SHA_224,\n" +
-                            "5 -   SHA_256,\n" +
-                            "6 -    SHA_384,\n" +
-                            "7 -    SHA_512,");
-                    int algorithm = Integer.parseInt(scanner.nextLine());
-                    scanner.nextLine();
-                    AvailableDigestAlgorithms algorithmChoosen = AvailableDigestAlgorithms.MD5;
-                    switch (algorithm){
-                        case 1:
-                            algorithmChoosen = AvailableDigestAlgorithms.MD2;
-                            break;
-                        case 2:
-                            algorithmChoosen = AvailableDigestAlgorithms.MD5;
-                            break;
-                        case 3:
-                            algorithmChoosen = AvailableDigestAlgorithms.SHA_1;
-                            break;
-                        case 4:
-                            algorithmChoosen = AvailableDigestAlgorithms.SHA_224;
-                            break;
-                        case 5:
-                            algorithmChoosen = AvailableDigestAlgorithms.SHA_256;
-                            break;
-                        case 6:
-                            algorithmChoosen = AvailableDigestAlgorithms.SHA_384;
-                            break;
-                        case 7:
-                            algorithmChoosen = AvailableDigestAlgorithms.SHA_512;
-                            break;
-                        default:
-                            LOGGER.warning("ALGORITHM NOT FOUND, SO IS GOING TO BE MD5");
-                            break;
-                    }
-                    LOGGER.info("How many hashes?");
-                    int amountOfHashes = Integer.parseInt(scanner.nextLine());
-                    scanner.nextLine();
-                    ArrayList<String> digests = new ArrayList<>();
-                    for(int i = 0 ; i< amountOfHashes ; i++){
-                        LOGGER.info("What's the hash nr " + i + " ?");
-                        String hash = scanner.nextLine();
-                        scanner.nextLine();
-                        digests.add(hash);
-                    }
-                    LOGGER.info("What's the delta size (amount of lines a worker has to mine to get a single coin) ? be gentle ..");
-                    int deltaSize = Integer.parseInt(scanner.nextLine());
-                    scanner.nextLine();
-                    LOGGER.info(authSessionRI.createTaskGroup(this.client.getHashedToken(),algorithmChoosen,deltaSize,digests));
+                    setTaskParameters(authSessionRI);
                     break;
                 case 3:
                     LOGGER.info("Which task u want to join?\n> ");
